@@ -1,0 +1,50 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Notifications — CarpoolMorocco{% endblock %}
+
+{% block body %}
+<div class="page-header" style="margin-bottom: 24px;">
+    <div>
+        <h1 style="font-size: 1.6rem; font-weight: 800;">Notifications</h1>
+        <p style="font-size: 0.9rem; color: var(--text-muted);">Stay informed about schedule modifications, cancellations, and ratings</p>
+    </div>
+    {% if notifications is not empty %}
+        <form action="{{ path('app_notifications') }}" method="POST">
+            <button type="submit" class="btn btn-outline btn-sm">
+                ✓ Mark All as Read
+            </button>
+        </form>
+    {% endif %}
+</div>
+
+<div class="card" style="padding: 12px 20px;">
+    {% for notif in notifications %}
+        <div style="padding: 14px 0; border-bottom: 1px solid var(--border); display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; opacity: {% if notif.isRead %}0.65{% else %}1{% endif %};">
+            <div style="display: flex; gap: 12px; align-items: flex-start;">
+                <div style="font-size: 1.4rem;">
+                    {% if notif.type == 'trip_modified' %}⚠️
+                    {% elseif notif.type == 'trip_cancelled' %}❌
+                    {% elseif notif.type == 'booking_confirmed' %}🎉
+                    {% elseif notif.type == 'review_received' %}⭐
+                    {% else %}🔔{% endif %}
+                </div>
+                <div>
+                    <div style="font-size: 0.92rem; font-weight: 600; color: var(--text-main);">
+                        {{ notif.message }}
+                    </div>
+                    <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 3px;">
+                        {{ notif.createdAt|date('D, d M Y H:i') }} · Type: <code>{{ notif.type }}</code>
+                    </div>
+                </div>
+            </div>
+            {% if not notif.isRead %}
+                <span class="badge badge-active" style="font-size: 0.7rem;">NEW</span>
+            {% endif %}
+        </div>
+    {% else %}
+        <p style="text-align: center; color: var(--text-muted); padding: 36px 0;">
+            You have no notifications at this time.
+        </p>
+    {% endfor %}
+</div>
+{% endblock %}

@@ -1,0 +1,90 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Create an Account{% endblock %}
+
+{% block body %}
+<div style="max-width: 520px; margin: 30px auto;">
+    <div class="card" style="box-shadow: var(--shadow-md);">
+        <div style="text-align: center; margin-bottom: 24px;">
+            <div style="font-size: 2.2rem; margin-bottom: 8px;">✨</div>
+            <h1 class="card-title" style="font-size: 1.5rem;">Join CarpoolMorocco</h1>
+            <p style="font-size: 0.88rem; color: var(--text-muted); margin-top: 4px;">
+                Choose your account type and start sharing rides
+            </p>
+        </div>
+
+        <form method="post" action="{{ path('app_register') }}">
+            <!-- Account Type Selector -->
+            <div class="form-group">
+                <label class="form-label">I want to join primarily as:</label>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <label style="border: 2px solid var(--border); border-radius: var(--radius-md); padding: 14px; cursor: pointer; text-align: center; display: block;" id="label-passenger">
+                        <input type="radio" name="accountType" value="passenger" checked onchange="toggleAccountType('passenger')" style="margin-bottom: 6px;">
+                        <div style="font-weight: 700; font-size: 0.95rem;">🚶 Passenger</div>
+                        <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 4px;">Search & book rides between cities</div>
+                    </label>
+
+                    <label style="border: 2px solid var(--border); border-radius: var(--radius-md); padding: 14px; cursor: pointer; text-align: center; display: block;" id="label-driver">
+                        <input type="radio" name="accountType" value="driver" onchange="toggleAccountType('driver')" style="margin-bottom: 6px;">
+                        <div style="font-weight: 700; font-size: 0.95rem;">🚗 Driver</div>
+                        <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 4px;">Publish rides & take passengers</div>
+                    </label>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <div class="form-group">
+                    <label for="firstName" class="form-label">First Name</label>
+                    <input type="text" name="firstName" id="firstName" class="form-control" required placeholder="e.g. Mehdi">
+                </div>
+                <div class="form-group">
+                    <label for="lastName" class="form-label">Last Name</label>
+                    <input type="text" name="lastName" id="lastName" class="form-control" required placeholder="e.g. Chraibi">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="email" class="form-label">Email Address</label>
+                <input type="email" name="email" id="email" class="form-control" required placeholder="mehdi@example.com">
+            </div>
+
+            <div class="form-group">
+                <label for="phone" class="form-label">Phone Number (Moroccan)</label>
+                <input type="tel" name="phone" id="phone" class="form-control" placeholder="+212 6 XX XX XX XX">
+            </div>
+
+            <div class="form-group">
+                <label for="password" class="form-label">Password</label>
+                <input type="password" name="password" id="password" class="form-control" required placeholder="At least 6 characters">
+            </div>
+
+            <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: var(--radius-sm); padding: 12px; margin-bottom: 18px; font-size: 0.82rem; color: #166534;">
+                ⭐ <strong>Community Trust Policy:</strong> Every new profile starts with 10 baseline ratings of 4.0/5 to place you in a stable tier.
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-lg" style="width: 100%;">
+                Create My Account
+            </button>
+        </form>
+
+        <div style="margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--border); text-align: center; font-size: 0.88rem; color: var(--text-muted);">
+            Already have an account? <a href="{{ path('app_login') }}" style="color: var(--primary); font-weight: 600; text-decoration: none;">Log in</a>
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleAccountType(type) {
+    const pLabel = document.getElementById('label-passenger');
+    const dLabel = document.getElementById('label-driver');
+    if (type === 'passenger') {
+        pLabel.style.borderColor = 'var(--primary)';
+        dLabel.style.borderColor = 'var(--border)';
+    } else {
+        dLabel.style.borderColor = 'var(--primary)';
+        pLabel.style.borderColor = 'var(--border)';
+    }
+}
+toggleAccountType('passenger');
+</script>
+{% endblock %}

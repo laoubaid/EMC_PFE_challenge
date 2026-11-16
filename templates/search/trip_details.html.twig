@@ -1,0 +1,204 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Trip Details — {{ trip.originCity.name }} to {{ trip.destinationCity.name }}{% endblock %}
+
+{% block body %}
+<div class="page-header" style="margin-bottom: 24px;">
+    <div>
+        <a href="{{ path('app_search') }}" style="color: var(--primary); text-decoration: none; font-size: 0.88rem; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; margin-bottom: 8px;">
+            ← Back to Search
+        </a>
+        <h1 style="font-size: 1.8rem; font-weight: 800;">
+            {{ trip.originCity.name }} → {{ trip.destinationCity.name }}
+        </h1>
+        <p style="font-size: 0.9rem; color: var(--text-muted);">
+            📅 {{ trip.departureTime|date('l, d F Y at H:i') }} · Vehicle: {{ trip.vehicle.displayName }}
+        </p>
+    </div>
+</div>
+
+<div style="display: grid; grid-template-columns: 2fr 1fr; gap: 24px; align-items: start;">
+    <!-- Left Column: Route Stops & Details -->
+    <div>
+        <!-- Route Stops Card -->
+        <div class="card">
+            <h2 class="card-title" style="margin-bottom: 18px;">Itinerary & Stops</h2>
+
+            <div style="position: relative; padding-left: 28px;">
+                <!-- Vertical route line -->
+                <div style="position: absolute; left: 9px; top: 12px; bottom: 20px; width: 2px; background: var(--primary);"></div>
+
+                {% for wp in orderedWaypoints %}
+                    <div style="position: relative; margin-bottom: 24px;">
+                        <!-- Node Circle -->
+                        <div style="position: absolute; left: -28px; top: 4px; width: 18px; height: 18px; border-radius: 50%; background: white; border: 3px solid var(--primary);"></div>
+
+                        <div style="display: flex; justify-content: space-between; align-items: baseline;">
+                            <div>
+                                <span style="font-size: 1.15rem; font-weight: 800; color: var(--text-main);">
+                                    {{ wp.city.name }}
+                                </span>
+                                <span style="font-size: 0.78rem; color: var(--text-muted); margin-left: 8px;">
+                                    (Stop #{{ wp.stopOrder }})
+                                </span>
+                            </div>
+                            <div style="text-align: right;">
+                                <span style="font-weight: 700; font-size: 1rem;">{{ wp.arrivalTime|date('H:i') }}</span>
+                                <div style="font-size: 0.75rem; color: var(--text-muted);">{{ wp.distanceFromOriginKm }} km from start</div>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Segment Leg-by-Leg Capacity Breakdown -->
+        <div class="card">
+            <h2 class="card-title" style="margin-bottom: 6px;">Intermediate Segment Capacity Model</h2>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 16px;">
+                Seats freed at intermediate stops are available for subsequent portions of the trip.
+            </p>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Leg</th>
+                        <th>Segment</th>
+                        <th>Occupancy</th>
+                        <th>Available Seats</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for leg in occupancyBreakdown %}
+                        <tr>
+                            <td>Leg {{ leg.legIndex }}</td>
+                            <td><strong>{{ leg.fromCity }}</strong> → <strong>{{ leg.toCity }}</strong></td>
+                            <td>{{ leg.occupiedSeats }} / {{ leg.totalSeats }} seats taken</td>
+                            <td>
+                                <strong style="color: {% if leg.availableSeats > 0 %}var(--success){% else %}var(--danger){% endif %};">
+                                    {{ leg.availableSeats }} seat(s) free
+                                </strong>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Driver Profile & Reviews -->
+        <div class="card">
+            <div class="card-header">
+                <div style="display: flex; align-items: center; gap: 14px;">
+                    <div style="width: 48px; height: 48px; border-radius: 50%; background: var(--primary-light); color: var(--primary-dark); display: flex; align-items: center; justify-content: center; font-size: 1.3rem; font-weight: 800;">
+                        {{ trip.driver.firstName|slice(0, 1) }}
+                    </div>
+                    <div>
+                        <h2 class="card-title" style="margin-bottom: 2px;">{{ trip.driver.fullName }}</h2>
+                        <div style="font-size: 0.85rem; color: #d97706; font-weight: 700;">
+                            ★ {{ trip.driver.ratingAvg|number_format(1) }} <span style="color: var(--text-muted); font-weight: 500;">({{ trip.driver.ratingCount }} ratings)</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <h3 style="font-size: 0.95rem; font-weight: 700; margin-bottom: 12px;">Recent Reviews</h3>
+            {% for rev in trip.reviews %}
+                <div style="border-bottom: 1px solid var(--border); padding-bottom: 12px; margin-bottom: 12px;">
+                    <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 4px;">
+                        <strong>{{ rev.author.fullName }}</strong>
+                        <span style="color: #d97706; font-weight: 700;">★ {{ rev.rating }}/5</span>
+                    </div>
+                    <div style="font-size: 0.85rem; color: var(--text-muted);">"{{ rev.comment }}"</div>
+                </div>
+            {% else %}
+                <p style="font-size: 0.85rem; color: var(--text-muted);">No reviews posted for this specific ride yet.</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Right Column: Booking Widget -->
+    <div>
+        <div class="card" style="position: sticky; top: 80px; box-shadow: var(--shadow-md);">
+            <h2 class="card-title" style="margin-bottom: 16px;">Reserve Your Seat</h2>
+
+            <!-- Segment Selector Form (GET to recalculate preview) -->
+            <form action="{{ path('app_trip_show', { id: trip.id }) }}" method="GET" style="margin-bottom: 18px;">
+                <div class="form-group">
+                    <label class="form-label">Boarding Stop</label>
+                    <select name="board" class="form-control" onchange="this.form.submit()">
+                        {% for wp in orderedWaypoints %}
+                            {% if not loop.last %}
+                                <option value="{{ wp.id }}" {% if boardWaypoint and boardWaypoint.id == wp.id %}selected{% endif %}>
+                                    {{ wp.city.name }} ({{ wp.arrivalTime|date('H:i') }})
+                                </option>
+                            {% endif %}
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Alighting Stop</label>
+                    <select name="alight" class="form-control" onchange="this.form.submit()">
+                        {% for wp in orderedWaypoints %}
+                            {% if not loop.first %}
+                                <option value="{{ wp.id }}" {% if alightWaypoint and alightWaypoint.id == wp.id %}selected{% endif %}>
+                                    {{ wp.city.name }} ({{ wp.arrivalTime|date('H:i') }})
+                                </option>
+                            {% endif %}
+                        {% endfor %}
+                    </select>
+                </div>
+            </form>
+
+            <!-- Price Breakdown Summary -->
+            <div style="background: #f8fafc; border: 1px solid var(--border); border-radius: var(--radius-md); padding: 16px; margin-bottom: 20px;">
+                <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 6px;">
+                    <span style="color: var(--text-muted);">Distance:</span>
+                    <strong>{{ distanceKm }} km</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 6px;">
+                    <span style="color: var(--text-muted);">Price per Seat:</span>
+                    <strong>{{ price }} DH</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 6px;">
+                    <span style="color: var(--text-muted);">Seats Available:</span>
+                    <strong style="color: {% if availableSeats > 0 %}var(--success){% else %}var(--danger){% endif %};">
+                        {{ availableSeats }} seat(s)
+                    </strong>
+                </div>
+            </div>
+
+            <!-- Booking Submission Form (POST) -->
+            {% if availableSeats > 0 %}
+                <form action="{{ path('app_trip_book', { id: trip.id }) }}" method="POST">
+                    <input type="hidden" name="board_waypoint_id" value="{{ boardWaypoint ? boardWaypoint.id : '' }}">
+                    <input type="hidden" name="alight_waypoint_id" value="{{ alightWaypoint ? alightWaypoint.id : '' }}">
+
+                    <div class="form-group">
+                        <label for="seats_count" class="form-label">Number of Seats (Multi-Seat Booking)</label>
+                        <select name="seats_count" id="seats_count" class="form-control">
+                            {% for s in 1..availableSeats %}
+                                <option value="{{ s }}">{{ s }} seat{{ s > 1 ? 's' : '' }} (Total: {{ (price * s)|number_format(2) }} DH)</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    {% if app.user %}
+                        <button type="submit" class="btn btn-primary btn-lg" style="width: 100%;">
+                            💳 Confirm & Simulate Payment
+                        </button>
+                    {% else %}
+                        <a href="{{ path('app_login') }}" class="btn btn-primary btn-lg" style="width: 100%;">
+                            Log In to Book
+                        </a>
+                    {% endif %}
+                </form>
+            {% else %}
+                <div class="alert alert-warning" style="margin-bottom: 0;">
+                    No seats available on this segment.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

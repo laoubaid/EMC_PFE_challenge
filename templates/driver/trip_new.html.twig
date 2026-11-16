@@ -1,0 +1,156 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Publish a Ride — CarpoolMorocco{% endblock %}
+
+{% block body %}
+<div class="page-header" style="margin-bottom: 24px;">
+    <div>
+        <a href="{{ path('driver_dashboard') }}" style="color: var(--primary); text-decoration: none; font-size: 0.88rem; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; margin-bottom: 8px;">
+            ← Back to Driver Space
+        </a>
+        <h1 style="font-size: 1.6rem; font-weight: 800;">Publish an Inter-City Ride</h1>
+        <p style="font-size: 0.9rem; color: var(--text-muted);">Configure your route, intermediate stops, schedules, and available seats</p>
+    </div>
+</div>
+
+<div style="max-width: 760px; margin: 0 auto;">
+    <div class="card">
+        <form method="post" action="{{ path('driver_trip_new') }}">
+            <!-- Step 1: Vehicle -->
+            <div class="form-group">
+                <label for="vehicle_id" class="form-label">Vehicle to Use</label>
+                <select name="vehicle_id" id="vehicle_id" class="form-control" required>
+                    {% for vehicle in vehicles %}
+                        <option value="{{ vehicle.id }}">
+                            {{ vehicle.brand }} {{ vehicle.model }} (Plate: {{ vehicle.plate }}, {{ vehicle.seats }} total seats)
+                        </option>
+                    {% endfor %}
+                </select>
+                <div class="form-hint">
+                    Need to add another car? <a href="{{ path('driver_vehicles') }}" style="color: var(--primary);">Manage vehicles here</a>.
+                </div>
+            </div>
+
+            <!-- Step 2: Route Origin & Destination -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                <div class="form-group">
+                    <label for="origin_city_id" class="form-label">Departure City (Origin)</label>
+                    <select name="origin_city_id" id="origin_city_id" class="form-control" required>
+                        <option value="">Select city...</option>
+                        {% for city in cities %}
+                            <option value="{{ city.id }}">{{ city.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="dest_city_id" class="form-label">Destination City</label>
+                    <select name="dest_city_id" id="dest_city_id" class="form-control" required>
+                        <option value="">Select destination...</option>
+                        {% for city in cities %}
+                            <option value="{{ city.id }}">{{ city.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <!-- Step 3: Date & Departure Time -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px;">
+                <div class="form-group">
+                    <label for="departure_date" class="form-label">Departure Date</label>
+                    <input type="date" name="departure_date" id="departure_date" class="form-control" min="{{ 'now'|date('Y-m-d') }}" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="departure_time" class="form-label">Departure Time</label>
+                    <input type="time" name="departure_time" id="departure_time" class="form-control" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="total_seats" class="form-label">Seats Offered</label>
+                    <input type="number" name="total_seats" id="total_seats" class="form-control" min="1" max="8" value="3" required>
+                </div>
+            </div>
+
+            <!-- Step 4: Intermediate Stops (Dynamic) -->
+            <div style="margin: 24px 0; border-top: 1px solid var(--border); padding-top: 18px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                    <div>
+                        <h3 style="font-size: 1rem; font-weight: 700;">Intermediate Stops (Optional)</h3>
+                        <p style="font-size: 0.82rem; color: var(--text-muted);">
+                            Add cities where you can drop off or pick up passengers along your way.
+                        </p>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline" onclick="addIntermediateStop()">
+                        + Add Stop
+                    </button>
+                </div>
+
+                <div id="intermediate-stops-container"></div>
+            </div>
+
+            <!-- Step 5: Final Destination Road Details -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; background: #f8fafc; border: 1px solid var(--border); border-radius: var(--radius-md); padding: 14px; margin-bottom: 24px;">
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label for="dest_distance_km" class="form-label">Total Distance to Destination (km)</label>
+                    <input type="number" step="1" name="dest_distance_km" id="dest_distance_km" class="form-control" value="250" required>
+                    <div class="form-hint">Actual road distance used to calculate prices.</div>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label for="dest_arrival_time" class="form-label">Estimated Travel Time (Minutes)</label>
+                    <input type="number" step="15" name="dest_arrival_time" id="dest_arrival_time" class="form-control" value="180" required>
+                    <div class="form-hint">E.g. 180 min = 3 hours from departure.</div>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-lg" style="width: 100%;">
+                Publish This Ride
+            </button>
+        </form>
+    </div>
+</div>
+
+<script>
+let stopCount = 0;
+const citiesData = [
+    {% for city in cities %}
+        { id: {{ city.id }}, name: "{{ city.name }}" },
+    {% endfor %}
+];
+
+function addIntermediateStop() {
+    stopCount++;
+    const container = document.getElementById('intermediate-stops-container');
+    const div = document.createElement('div');
+    div.id = 'stop-row-' + stopCount;
+    div.style = "display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 10px; align-items: end; background: #fafafa; border: 1px solid var(--border); border-radius: 8px; padding: 12px; margin-bottom: 10px;";
+
+    let cityOptions = '<option value="">Select stop city...</option>';
+    citiesData.forEach(c => {
+        cityOptions += `<option value="${c.id}">${c.name}</option>`;
+    });
+
+    div.innerHTML = `
+        <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label" style="font-size:0.75rem;">Stop City #${stopCount}</label>
+            <select name="intermediate_cities[]" class="form-control" required>
+                ${cityOptions}
+            </select>
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label" style="font-size:0.75rem;">Minutes After Departure</label>
+            <input type="number" name="intermediate_times[]" class="form-control" placeholder="e.g. 90" value="${stopCount * 90}" required>
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label" style="font-size:0.75rem;">Km From Origin</label>
+            <input type="number" name="intermediate_distances[]" class="form-control" placeholder="e.g. 120" value="${stopCount * 120}" required>
+        </div>
+        <button type="button" class="btn btn-sm btn-outline" style="color:var(--danger); height:40px;" onclick="document.getElementById('stop-row-${stopCount}').remove()">
+            ✕
+        </button>
+    `;
+    container.appendChild(div);
+}
+</script>
+{% endblock %}

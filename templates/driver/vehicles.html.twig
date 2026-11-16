@@ -1,0 +1,91 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}My Vehicles — CarpoolMorocco{% endblock %}
+
+{% block body %}
+<div class="page-header" style="margin-bottom: 24px;">
+    <div>
+        <a href="{{ path('driver_dashboard') }}" style="color: var(--primary); text-decoration: none; font-size: 0.88rem; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; margin-bottom: 8px;">
+            ← Back to Driver Space
+        </a>
+        <h1 style="font-size: 1.6rem; font-weight: 800;">My Registered Vehicles</h1>
+        <p style="font-size: 0.9rem; color: var(--text-muted);">Manage your cars used for publishing inter-city carpooling trips</p>
+    </div>
+</div>
+
+<div style="display: grid; grid-template-columns: 2fr 1fr; gap: 24px; align-items: start;">
+    <!-- Registered Vehicles List -->
+    <div class="card">
+        <h2 class="card-title" style="margin-bottom: 16px;">Active Vehicle Fleet</h2>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Car</th>
+                    <th>Moroccan Plate</th>
+                    <th>Capacity</th>
+                    <th>Trips Driven</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for v in vehicles %}
+                    <tr>
+                        <td>
+                            <strong style="font-size: 1rem;">{{ v.brand }} {{ v.model }}</strong>
+                        </td>
+                        <td>
+                            <span class="badge" style="background: #e2e8f0; color: #1e293b; font-size: 0.82rem;">
+                                {{ v.plate }}
+                            </span>
+                        </td>
+                        <td>
+                            <strong>{{ v.seats }} total seats</strong>
+                            <div style="font-size: 0.75rem; color: var(--text-muted);">Max {{ v.seats - 1 }} passengers</div>
+                        </td>
+                        <td>
+                            {{ v.trips|length }} trip(s)
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="4" style="text-align: center; color: var(--text-muted); padding: 24px;">
+                            No vehicles registered yet. Register your vehicle below to start publishing rides.
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Add Vehicle Form -->
+    <div class="card">
+        <h2 class="card-title" style="margin-bottom: 16px;">+ Add New Vehicle</h2>
+
+        <form method="post" action="{{ path('driver_vehicles') }}">
+            <div class="form-group">
+                <label for="brand" class="form-label">Brand</label>
+                <input type="text" name="brand" id="brand" class="form-control" required placeholder="e.g. Dacia, Renault, Hyundai">
+            </div>
+
+            <div class="form-group">
+                <label for="model" class="form-label">Model</label>
+                <input type="text" name="model" id="model" class="form-control" required placeholder="e.g. Logan, Clio, Accent">
+            </div>
+
+            <div class="form-group">
+                <label for="plate" class="form-label">Moroccan License Plate</label>
+                <input type="text" name="plate" id="plate" class="form-control" required placeholder="e.g. 12345-A-1">
+            </div>
+
+            <div class="form-group">
+                <label for="seats" class="form-label">Total Seats (Including Driver)</label>
+                <input type="number" name="seats" id="seats" class="form-control" min="2" max="9" value="5" required>
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width: 100%;">
+                Register Vehicle
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}

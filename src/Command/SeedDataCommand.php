@@ -97,6 +97,7 @@ class SeedDataCommand extends Command
         $driverKarim->setPhone('+212611223344');
         $driverKarim->setRatingAvg(4.2);
         $driverKarim->setRatingCount(15);
+        $driverKarim->addRole(User::ROLE_DRIVER);
         $driverKarim->setPassword($this->passwordHasher->hashPassword($driverKarim, 'driver123'));
         $this->entityManager->persist($driverKarim);
 
@@ -108,6 +109,7 @@ class SeedDataCommand extends Command
         $driverSamira->setPhone('+212655667788');
         $driverSamira->setRatingAvg(4.8);
         $driverSamira->setRatingCount(20);
+        $driverSamira->addRole(User::ROLE_DRIVER);
         $driverSamira->setPassword($this->passwordHasher->hashPassword($driverSamira, 'driver123'));
         $this->entityManager->persist($driverSamira);
 

@@ -1,0 +1,167 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Manage Trip #{{ trip.id }} — Driver Workspace{% endblock %}
+
+{% block body %}
+<div class="page-header" style="margin-bottom: 24px;">
+    <div>
+        <a href="{{ path('driver_dashboard') }}" style="color: var(--primary); text-decoration: none; font-size: 0.88rem; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; margin-bottom: 8px;">
+            ← Back to Driver Space
+        </a>
+        <h1 style="font-size: 1.6rem; font-weight: 800;">
+            Trip #{{ trip.id }}: {{ trip.originCity.name }} → {{ trip.destinationCity.name }}
+        </h1>
+        <p style="font-size: 0.9rem; color: var(--text-muted);">
+            Departure: <strong>{{ trip.departureTime|date('D, d M Y at H:i') }}</strong> ·
+            Status: <span class="badge badge-{{ trip.status }}">{{ trip.status }}</span> ·
+            Vehicle: {{ trip.vehicle.displayName }}
+        </p>
+    </div>
+</div>
+
+<div style="display: grid; grid-template-columns: 2fr 1fr; gap: 24px; align-items: start;">
+    <!-- Left Column: Passengers & Occupancy -->
+    <div>
+        <!-- Passenger Manifest Card -->
+        <div class="card">
+            <h2 class="card-title" style="margin-bottom: 16px;">
+                Booked Passengers Manifest ({{ trip.bookings|length }})
+            </h2>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Passenger</th>
+                        <th>Segment</th>
+                        <th>Seats</th>
+                        <th>Price</th>
+                        <th>Status</th>
+                        {% if trip.status == 'completed' %}
+                            <th>Review</th>
+                        {% endif %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for booking in trip.bookings %}
+                        <tr>
+                            <td>
+                                <strong>{{ booking.passenger.fullName }}</strong>
+                                <div style="font-size: 0.78rem; color: var(--text-muted);">
+                                    📞 {{ booking.passenger.phone ?? 'No phone' }} · ★ {{ booking.passenger.ratingAvg|number_format(1) }}
+                                </div>
+                            </td>
+                            <td>
+                                {{ booking.boardWaypoint.city.name }} → {{ booking.alightWaypoint.city.name }}
+                                <div style="font-size: 0.75rem; color: var(--text-muted);">{{ booking.distanceKm }} km</div>
+                            </td>
+                            <td><strong>{{ booking.seatsCount }}</strong></td>
+                            <td><strong>{{ booking.price }} DH</strong></td>
+                            <td>
+                                <span class="badge badge-{{ booking.status }}">
+                                    {{ booking.status|replace({'_': ' '}) }}
+                                </span>
+                            </td>
+                            {% if trip.status == 'completed' and booking.isActive %}
+                                <td>
+                                    <!-- Driver review passenger form -->
+                                    <form action="{{ path('driver_review_passenger', { id: trip.id }) }}" method="POST" style="display: flex; gap: 4px;">
+                                        <input type="hidden" name="passenger_id" value="{{ booking.passenger.id }}">
+                                        <select name="rating" class="form-control" style="width: auto; padding: 2px 6px; font-size: 0.75rem;">
+                                            <option value="5">5★</option>
+                                            <option value="4">4★</option>
+                                            <option value="3">3★</option>
+                                            <option value="2">2★</option>
+                                            <option value="1">1★</option>
+                                        </select>
+                                        <button type="submit" class="btn btn-sm btn-outline">Rate</button>
+                                    </form>
+                                </td>
+                            {% endif %}
+                        </tr>
+                    {% else %}
+                        <tr>
+                            <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 24px;">
+                                No passengers have booked seats on this ride yet.
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Segment Breakdown -->
+        <div class="card">
+            <h2 class="card-title" style="margin-bottom: 14px;">Leg Occupancy & Seat Availability</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Leg</th>
+                        <th>Segment</th>
+                        <th>Occupancy</th>
+                        <th>Seats Available</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for leg in breakdown %}
+                        <tr>
+                            <td>Leg {{ leg.legIndex }}</td>
+                            <td><strong>{{ leg.fromCity }}</strong> → <strong>{{ leg.toCity }}</strong></td>
+                            <td>{{ leg.occupiedSeats }} / {{ leg.totalSeats }} taken</td>
+                            <td>
+                                <strong style="color: {% if leg.availableSeats > 0 %}var(--success){% else %}var(--danger){% endif %};">
+                                    {{ leg.availableSeats }} seat(s) free
+                                </strong>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Right Column: Trip Controls (Modifications & Cancellations) -->
+    <div>
+        <!-- Trip Modification / Cancellation Controls -->
+        {% if trip.status == 'scheduled' %}
+            <div class="card">
+                <h3 class="card-title" style="margin-bottom: 12px; font-size: 1.1rem;">Trip Schedule & Status</h3>
+
+                <!-- 24-Hour Policy Indicator -->
+                <div style="background: {% if canModify %}#f0fdf4{% else %}#fef2f2{% endif %}; border: 1px solid {% if canModify %}#bbf7d0{% else %}#fecaca{% endif %}; border-radius: var(--radius-md); padding: 14px; margin-bottom: 18px; font-size: 0.85rem; color: {% if canModify %}#166534{% else %}#991b1b{% endif %};">
+                    {% if canModify %}
+                        ✓ <strong>More than 24h before departure:</strong><br>
+                        You can update the departure time. Passengers will be asked to confirm their seats.
+                    {% else %}
+                        ⚠️ <strong>Less than 24h before departure ({{ hoursBeforeDeparture|number_format(1) }}h left):</strong><br>
+                        Schedule modifications are locked per policy. Cancelling will apply a <strong>-1.0 rating penalty</strong> and issue full refunds.
+                    {% endif %}
+                </div>
+
+                <!-- Modification Form (Allowed if >24h) -->
+                {% if canModify %}
+                    <form action="{{ path('driver_trip_modify', { id: trip.id }) }}" method="POST" style="margin-bottom: 20px;">
+                        <div class="form-group">
+                            <label class="form-label">New Departure Date</label>
+                            <input type="date" name="departure_date" class="form-control" value="{{ trip.departureTime|date('Y-m-d') }}" min="{{ 'now'|date('Y-m-d') }}" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">New Departure Time</label>
+                            <input type="time" name="departure_time" class="form-control" value="{{ trip.departureTime|date('H:i') }}" required>
+                        </div>
+                        <button type="submit" class="btn btn-outline" style="width: 100%;">
+                            Update Schedule & Notify Passengers
+                        </button>
+                    </form>
+                {% endif %}
+
+                <!-- Cancellation Button -->
+                <form action="{{ path('driver_trip_cancel', { id: trip.id }) }}" method="POST" onsubmit="return confirm('{% if not canModify %}WARNING: Cancelling within 24h of departure will penalize your rating by -1.0! All passengers will receive full refunds.{% else %}Are you sure you want to cancel this trip? All reservations will be refunded.{% endif %}');">
+                    <button type="submit" class="btn btn-danger" style="width: 100%;">
+                        Cancel This Trip
+                    </button>
+                </form>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

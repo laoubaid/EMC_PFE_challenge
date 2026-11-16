@@ -1,0 +1,143 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Search Rides — CarpoolMorocco{% endblock %}
+
+{% block body %}
+<div class="page-header" style="margin-bottom: 24px;">
+    <div>
+        <h1 style="font-size: 1.6rem; font-weight: 800;">Search Carpooling Rides</h1>
+        <p style="font-size: 0.9rem; color: var(--text-muted);">Find rides between Moroccan cities or book intermediate portions</p>
+    </div>
+</div>
+
+<!-- Search Form Card -->
+<div class="card" style="margin-bottom: 28px;">
+    <form action="{{ path('app_search') }}" method="GET" style="display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 14px; align-items: end;">
+        <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label">Departure City</label>
+            <select name="origin" class="form-control" required>
+                <option value="">Select departure...</option>
+                {% for city in cities %}
+                    <option value="{{ city.id }}" {% if originCity and originCity.id == city.id %}selected{% endif %}>
+                        {{ city.name }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label">Destination City</label>
+            <select name="destination" class="form-control" required>
+                <option value="">Select destination...</option>
+                {% for city in cities %}
+                    <option value="{{ city.id }}" {% if destCity and destCity.id == city.id %}selected{% endif %}>
+                        {{ city.name }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label">Travel Date (Optional)</label>
+            <input type="date" name="date" class="form-control" value="{{ searchDate }}" min="{{ 'now'|date('Y-m-d') }}">
+        </div>
+
+        <div>
+            <button type="submit" class="btn btn-primary" style="height: 44px; padding: 0 24px; font-weight: 700; width: 100%;">
+                Search Rides
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Search Results -->
+{% if hasSearched %}
+    <h2 style="font-size: 1.2rem; font-weight: 700; margin-bottom: 16px;">
+        Rides from {{ originCity.name }} to {{ destCity.name }}
+        <span style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted);">({{ results|length }} available)</span>
+    </h2>
+
+    <div style="display: flex; flex-direction: column; gap: 16px;">
+        {% for res in results %}
+            {% set trip = res.trip %}
+            <div class="card" style="margin-bottom: 0; display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 20px; align-items: center;">
+                <div>
+                    <!-- Segment Times -->
+                    <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 10px;">
+                        <div>
+                            <div style="font-size: 1.25rem; font-weight: 800;">{{ res.boardWaypoint.arrivalTime|date('H:i') }}</div>
+                            <div style="font-size: 0.85rem; font-weight: 600; color: var(--text-main);">{{ res.boardWaypoint.city.name }}</div>
+                        </div>
+
+                        <div style="flex: 1; text-align: center;">
+                            <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600;">
+                                {{ res.distanceKm }} km
+                            </div>
+                            <div style="height: 2px; background: var(--primary); position: relative; margin: 4px 0;">
+                                <div style="width: 8px; height: 8px; border-radius: 50%; background: var(--primary); position: absolute; left: 0; top: -3px;"></div>
+                                <div style="width: 8px; height: 8px; border-radius: 50%; background: var(--primary); position: absolute; right: 0; top: -3px;"></div>
+                            </div>
+                            <div style="font-size: 0.72rem; color: var(--text-muted);">
+                                Part of Trip #{{ trip.id }}
+                            </div>
+                        </div>
+
+                        <div>
+                            <div style="font-size: 1.25rem; font-weight: 800;">{{ res.alightWaypoint.arrivalTime|date('H:i') }}</div>
+                            <div style="font-size: 0.85rem; font-weight: 600; color: var(--text-main);">{{ res.alightWaypoint.city.name }}</div>
+                        </div>
+                    </div>
+
+                    <div style="font-size: 0.8rem; color: var(--text-muted);">
+                        Departure Date: <strong>{{ trip.departureTime|date('D, d M Y') }}</strong>
+                    </div>
+                </div>
+
+                <!-- Driver Info -->
+                <div style="border-left: 1px solid var(--border); padding-left: 18px;">
+                    <div style="font-weight: 700; font-size: 0.95rem;">{{ trip.driver.fullName }}</div>
+                    <div style="color: #d97706; font-size: 0.85rem; font-weight: 700; margin: 2px 0;">
+                        ★ {{ trip.driver.ratingAvg|number_format(1) }} <span style="font-size: 0.75rem; color: var(--text-muted);">({{ trip.driver.ratingCount }})</span>
+                    </div>
+                    <div style="font-size: 0.78rem; color: var(--text-muted);">
+                        🚗 {{ trip.vehicle.brand }} {{ trip.vehicle.model }}
+                    </div>
+                </div>
+
+                <!-- Price and availability -->
+                <div style="border-left: 1px solid var(--border); padding-left: 18px; text-align: right;">
+                    <div style="font-size: 1.5rem; font-weight: 800; color: var(--primary);">
+                        {{ res.price }} <span style="font-size: 0.85rem;">DH</span>
+                    </div>
+                    <div style="font-size: 0.82rem; font-weight: 700; color: {% if res.availableSeats > 0 %}var(--success){% else %}var(--danger){% endif %};">
+                        {% if res.availableSeats > 0 %}
+                            {{ res.availableSeats }} seat(s) available
+                        {% else %}
+                            Sold out on this leg
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Action -->
+                <div>
+                    {% if res.availableSeats > 0 %}
+                        <a href="{{ path('app_trip_show', { id: trip.id, board: res.boardWaypoint.id, alight: res.alightWaypoint.id }) }}" class="btn btn-primary">
+                            Book Seat
+                        </a>
+                    {% else %}
+                        <button class="btn btn-outline" disabled style="opacity: 0.5;">Full</button>
+                    {% endif %}
+                </div>
+            </div>
+        {% else %}
+            <div class="card" style="text-align: center; padding: 48px 24px;">
+                <div style="font-size: 2.2rem; margin-bottom: 12px;">🔍</div>
+                <h3 style="font-size: 1.2rem; font-weight: 700; margin-bottom: 6px;">No rides found for this route</h3>
+                <p style="font-size: 0.9rem; color: var(--text-muted); max-width: 480px; margin: 0 auto 18px;">
+                    Try choosing nearby cities or clearing the date filter to see rides passing through intermediate stops.
+                </p>
+            </div>
+        {% endfor %}
+    </div>
+{% endif %}
+{% endblock %}

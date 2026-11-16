@@ -1,0 +1,77 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Log In{% endblock %}
+
+{% block body %}
+<div style="max-width: 480px; margin: 40px auto;">
+    <div class="card" style="box-shadow: var(--shadow-md);">
+        <div style="text-align: center; margin-bottom: 24px;">
+            <div style="font-size: 2.2rem; margin-bottom: 8px;">🚗</div>
+            <h1 class="card-title" style="font-size: 1.5rem;">Welcome to CarpoolMorocco</h1>
+            <p style="font-size: 0.88rem; color: var(--text-muted); margin-top: 4px;">
+                Log in to access your Passenger or Driver space
+            </p>
+        </div>
+
+        {% if error %}
+            <div class="alert alert-error" style="margin-bottom: 18px;">
+                {{ error.messageKey|trans(error.messageData, 'security') }}
+            </div>
+        {% endif %}
+
+        <form method="post" action="{{ path('app_login') }}">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
+
+            <div class="form-group">
+                <label for="username" class="form-label">Email Address</label>
+                <input type="email" value="{{ last_username }}" name="_username" id="username" class="form-control" autocomplete="email" required autofocus placeholder="name@example.com">
+            </div>
+
+            <div class="form-group">
+                <label for="password" class="form-label">Password</label>
+                <input type="password" name="_password" id="password" class="form-control" autocomplete="current-password" required placeholder="••••••••">
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-lg" style="width: 100%; margin-top: 10px;">
+                Log In
+            </button>
+        </form>
+
+        <div style="margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--border); text-align: center; font-size: 0.88rem; color: var(--text-muted);">
+            Don't have an account yet? <a href="{{ path('app_register') }}" style="color: var(--primary); font-weight: 600; text-decoration: none;">Create an account</a>
+        </div>
+    </div>
+
+    <!-- Quick 1-Click Demo Accounts -->
+    <div class="card" style="background: #f8fafc; border: 1px dashed var(--border);">
+        <h3 style="font-size: 0.88rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 12px; letter-spacing: 0.04em;">
+            ⚡ Demo Accounts (Click to Auto-Fill)
+        </h3>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+            <button type="button" class="btn btn-sm btn-outline" style="justify-content: flex-start; text-align: left;" onclick="fillLogin('admin@emc.ma', 'admin123')">
+                <span class="user-nav-badge badge-admin">Admin</span>
+                <strong>admin@emc.ma</strong> (Full Admin Back-Office)
+            </button>
+            <button type="button" class="btn btn-sm btn-outline" style="justify-content: flex-start; text-align: left;" onclick="fillLogin('karim.driver@emc.ma', 'driver123')">
+                <span class="user-nav-badge badge-driver">Driver</span>
+                <strong>karim.driver@emc.ma</strong> (Karim · 4.2★ · Dacia Logan)
+            </button>
+            <button type="button" class="btn btn-sm btn-outline" style="justify-content: flex-start; text-align: left;" onclick="fillLogin('samira.driver@emc.ma', 'driver123')">
+                <span class="user-nav-badge badge-driver">Driver</span>
+                <strong>samira.driver@emc.ma</strong> (Samira · 4.8★ · Renault Clio)
+            </button>
+            <button type="button" class="btn btn-sm btn-outline" style="justify-content: flex-start; text-align: left;" onclick="fillLogin('youssef.passenger@emc.ma', 'pass123')">
+                <span class="user-nav-badge badge-passenger">Passenger</span>
+                <strong>youssef.passenger@emc.ma</strong> (Youssef · Active Booking)
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+function fillLogin(email, password) {
+    document.getElementById('username').value = email;
+    document.getElementById('password').value = password;
+}
+</script>
+{% endblock %}

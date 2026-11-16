@@ -1,24 +1,291 @@
 <!DOCTYPE html>
-<html>
-    <head>
-        <meta charset="UTF-8">
-        <title>{% block title %}Welcome!{% endblock %}</title>
-        <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 128 128%22><text y=%221.2em%22 font-size=%2296%22>⚫️</text><text y=%221.3em%22 x=%220.2em%22 font-size=%2276%22 fill=%22%23fff%22>sf</text></svg>">
-        {% block stylesheets %}
-        {% endblock %}
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}CarpoolMorocco{% endblock %} - Inter-City Ridesharing</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #0284c7;
+            --primary-dark: #0369a1;
+            --primary-light: #e0f2fe;
+            --accent: #f59e0b;
+            --bg: #f8fafc;
+            --surface: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --success: #10b981;
+            --danger: #ef4444;
+            --radius-sm: 6px;
+            --radius-md: 10px;
+            --radius-lg: 16px;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.04);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.06);
+            --shadow-lg: 0 10px 25px rgba(0,0,0,0.08);
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            line-height: 1.5;
+        }
+        /* Top Navigation */
+        .navbar {
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            padding: 12px 28px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            box-shadow: var(--shadow-sm);
+        }
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            color: var(--primary-dark);
+            font-weight: 800;
+            font-size: 1.25rem;
+            letter-spacing: -0.02em;
+        }
+        .nav-menu {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+        }
+        .nav-link {
+            text-decoration: none;
+            color: var(--text-muted);
+            font-weight: 600;
+            font-size: 0.9rem;
+            padding: 6px 12px;
+            border-radius: var(--radius-sm);
+            transition: all 0.15s;
+        }
+        .nav-link:hover {
+            color: var(--primary);
+            background: var(--primary-light);
+        }
+        .user-nav-badge {
+            font-size: 0.72rem;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 9999px;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+        .badge-admin { background: #fee2e2; color: #b91c1c; }
+        .badge-driver { background: #dcfce7; color: #15803d; }
+        .badge-passenger { background: #e0f2fe; color: #0369a1; }
+        /* Main Layout */
+        .main-container {
+            max-width: 1180px;
+            width: 100%;
+            margin: 28px auto;
+            padding: 0 20px;
+            flex: 1;
+        }
+        /* Alerts */
+        .alert {
+            padding: 12px 18px;
+            border-radius: var(--radius-md);
+            margin-bottom: 20px;
+            font-size: 0.92rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: var(--shadow-sm);
+        }
+        .alert-success { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+        .alert-error, .alert-danger { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+        .alert-warning { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
+        .alert-info { background: #e0f2fe; color: #075985; border: 1px solid #bae6fd; }
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 9px 18px;
+            font-size: 0.88rem;
+            font-weight: 600;
+            border-radius: var(--radius-sm);
+            border: 1px solid transparent;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.15s;
+            font-family: inherit;
+        }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: var(--primary-dark); }
+        .btn-accent { background: var(--accent); color: white; }
+        .btn-accent:hover { background: #d97706; }
+        .btn-outline { background: white; border-color: var(--border); color: var(--text-main); }
+        .btn-outline:hover { background: #f8fafc; border-color: #cbd5e1; }
+        .btn-danger { background: #ef4444; color: white; }
+        .btn-danger:hover { background: #dc2626; }
+        .btn-sm { padding: 5px 10px; font-size: 0.8rem; }
+        .btn-lg { padding: 12px 24px; font-size: 1rem; border-radius: var(--radius-md); }
+        /* Cards */
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: var(--shadow-sm);
+        }
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 18px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 14px;
+        }
+        .card-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+        /* Forms */
+        .form-group { margin-bottom: 16px; }
+        .form-label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 6px; color: var(--text-main); }
+        .form-control {
+            width: 100%;
+            padding: 10px 14px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border);
+            font-size: 0.92rem;
+            outline: none;
+            font-family: inherit;
+            background: white;
+            transition: border-color 0.15s;
+        }
+        .form-control:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
+        }
+        .form-hint { font-size: 0.78rem; color: var(--text-muted); margin-top: 4px; }
+        /* Badges */
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+        .badge-confirmed, .badge-active, .badge-completed { background: #dcfce7; color: #15803d; }
+        .badge-scheduled { background: #e0f2fe; color: #0369a1; }
+        .badge-pending_confirmation, .badge-pending { background: #fef3c7; color: #b45309; }
+        .badge-cancelled, .badge-cancelled_by_passenger, .badge-cancelled_by_driver { background: #fee2e2; color: #b91c1c; }
+        /* Table */
+        table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+        th { text-align: left; padding: 12px 14px; background: #f8fafc; color: var(--text-muted); font-size: 0.8rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border); }
+        td { padding: 14px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+        tr:hover td { background: #fafafa; }
+        /* Footer */
+        .footer {
+            background: var(--surface);
+            border-top: 1px solid var(--border);
+            padding: 24px;
+            text-align: center;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-top: 40px;
+        }
+    </style>
+    {% block stylesheets %}{% endblock %}
+</head>
+<body>
+    <nav class="navbar">
+        <a href="{{ path('app_home') }}" class="nav-brand">
+            🚗 CarpoolMorocco
+        </a>
 
-        {% block javascripts %}
-            {% block importmap %}{{ importmap('app') }}{% endblock %}
-        {% endblock %}
+        <div class="nav-menu">
+            <a href="{{ path('app_home') }}" class="nav-link">Home</a>
+            <a href="{{ path('app_search') }}" class="nav-link">Search Rides</a>
 
-        {% set frankenphp_hot_reload = app.request.server.get('FRANKENPHP_HOT_RELOAD') %}
-        {% if frankenphp_hot_reload %}
-        <meta name="frankenphp-hot-reload:url" content="{{ frankenphp_hot_reload }}">
-        <script src="https://cdn.jsdelivr.net/npm/idiomorph"></script>
-        <script src="https://cdn.jsdelivr.net/npm/frankenphp-hot-reload/+esm" type="module"></script>
-        {% endif %}
-    </head>
-    <body>
+            {% if app.user %}
+                {% if is_granted('ROLE_ADMIN') %}
+                    <a href="{{ path('admin_dashboard') }}" class="nav-link" style="color: #b91c1c; font-weight: 700;">
+                        🛡️ Admin Back-Office
+                    </a>
+                {% endif %}
+
+                {% if is_granted('ROLE_DRIVER') %}
+                    <a href="{{ path('driver_dashboard') }}" class="nav-link" style="color: #15803d; font-weight: 700;">
+                        🚗 Driver Space
+                    </a>
+                    <a href="{{ path('driver_trip_new') }}" class="btn btn-sm btn-primary">
+                        + Publish a Ride
+                    </a>
+                {% else %}
+                    <a href="{{ path('app_become_driver') }}" class="btn btn-sm btn-outline">
+                        🚗 Become a Driver
+                    </a>
+                {% endif %}
+
+                <a href="{{ path('passenger_bookings') }}" class="nav-link">
+                    🎟️ My Bookings
+                </a>
+
+                <a href="{{ path('app_notifications') }}" class="nav-link" title="Notifications">
+                    🔔
+                </a>
+
+                <!-- User profile badge -->
+                <div style="display: flex; align-items: center; gap: 8px; margin-left: 10px; border-left: 1px solid var(--border); padding-left: 12px;">
+                    <span class="user-nav-badge {% if is_granted('ROLE_ADMIN') %}badge-admin{% elseif is_granted('ROLE_DRIVER') %}badge-driver{% else %}badge-passenger{% endif %}">
+                        {{ app.user.accountType }}
+                    </span>
+                    <span style="font-size: 0.88rem; font-weight: 600;">{{ app.user.firstName }}</span>
+                    <span style="font-size: 0.82rem; color: #d97706; font-weight: 700;">★ {{ app.user.ratingAvg|number_format(1) }}</span>
+                    <a href="{{ path('app_logout') }}" class="btn btn-sm btn-outline" style="margin-left: 6px;">
+                        Logout
+                    </a>
+                </div>
+            {% else %}
+                <a href="{{ path('app_login') }}" class="btn btn-outline btn-sm">Log In</a>
+                <a href="{{ path('app_register') }}" class="btn btn-primary btn-sm">Sign Up</a>
+            {% endif %}
+        </div>
+    </nav>
+
+    <div class="main-container">
+        {% for message in app.flashes('success') %}
+            <div class="alert alert-success">✓ {{ message }}</div>
+        {% endfor %}
+        {% for message in app.flashes('error') %}
+            <div class="alert alert-error">⚠️ {{ message }}</div>
+        {% endfor %}
+        {% for message in app.flashes('warning') %}
+            <div class="alert alert-warning">⚡ {{ message }}</div>
+        {% endfor %}
+        {% for message in app.flashes('info') %}
+            <div class="alert alert-info">ℹ {{ message }}</div>
+        {% endfor %}
+
         {% block body %}{% endblock %}
-    </body>
+    </div>
+
+    <footer class="footer">
+        CarpoolMorocco — Regional Inter-City Ridesharing Platform · Agadir · Marrakech · Casablanca · Rabat · Tangier
+    </footer>
+    {% block javascripts %}{% endblock %}
+</body>
 </html>

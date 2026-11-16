@@ -1,0 +1,143 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}My Reservations — CarpoolMorocco{% endblock %}
+
+{% block body %}
+<div class="page-header" style="margin-bottom: 24px;">
+    <div>
+        <h1 style="font-size: 1.6rem; font-weight: 800;">My Reservations</h1>
+        <p style="font-size: 0.9rem; color: var(--text-muted);">Manage your booked seats, review trip schedules, and rate drivers after completed trips</p>
+    </div>
+    <div>
+        <a href="{{ path('app_search') }}" class="btn btn-primary">
+            + Book Another Ride
+        </a>
+    </div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 20px;">
+    {% for booking in bookings %}
+        {% set trip = booking.trip %}
+        <div class="card" style="margin-bottom: 0;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; border-bottom: 1px solid var(--border); padding-bottom: 12px;">
+                <div>
+                    <span style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">
+                        Reservation #{{ booking.id }} · {{ booking.createdAt|date('d M Y H:i') }}
+                    </span>
+                    <h2 style="font-size: 1.3rem; font-weight: 800; color: var(--text-main); margin-top: 2px;">
+                        {{ booking.boardWaypoint.city.name }} → {{ booking.alightWaypoint.city.name }}
+                    </h2>
+                </div>
+                <div style="text-align: right;">
+                    <span class="badge badge-{{ booking.status }}" style="font-size: 0.85rem;">
+                        {{ booking.status|replace({'_': ' '}) }}
+                    </span>
+                    <div style="font-size: 1.25rem; font-weight: 800; color: var(--primary); margin-top: 4px;">
+                        {{ booking.price }} DH
+                    </div>
+                </div>
+            </div>
+
+            <!-- Booking details grid -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 16px;">
+                <div>
+                    <span style="font-size: 0.78rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Departure Time</span>
+                    <div style="font-weight: 700; font-size: 0.95rem;">
+                        {{ booking.boardWaypoint.arrivalTime|date('D, d M Y at H:i') }}
+                    </div>
+                </div>
+
+                <div>
+                    <span style="font-size: 0.78rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Reserved Seats</span>
+                    <div style="font-weight: 700; font-size: 0.95rem;">
+                        {{ booking.seatsCount }} seat(s) ({{ booking.distanceKm }} km)
+                    </div>
+                </div>
+
+                <div>
+                    <span style="font-size: 0.78rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Driver</span>
+                    <div style="font-weight: 700; font-size: 0.95rem;">
+                        {{ trip.driver.fullName }} <span style="color: #d97706;">★ {{ trip.driver.ratingAvg|number_format(1) }}</span>
+                    </div>
+                    <div style="font-size: 0.78rem; color: var(--text-muted);">{{ trip.vehicle.displayName }}</div>
+                </div>
+
+                <div>
+                    <span style="font-size: 0.78rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Simulated Payment</span>
+                    <div>
+                        {% if booking.payment %}
+                            <span class="badge badge-{{ booking.payment.status }}">{{ booking.payment.status }}</span>
+                        {% else %}
+                            <span class="badge badge-pending">Pending</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Conditional Actions Based on DECISIONS.md -->
+            {% if booking.status == 'pending_confirmation' %}
+                <!-- Driver modified schedule more than 24h in advance -->
+                <div style="background: #fffbeb; border: 1px solid #fef3c7; border-radius: var(--radius-md); padding: 16px; margin-top: 14px;">
+                    <strong style="color: #b45309;">⚠️ Schedule Modified by Driver:</strong>
+                    <p style="font-size: 0.88rem; color: #92400e; margin: 4px 0 12px;">
+                        The driver modified the departure schedule. Please confirm if this new time suits you, or decline to receive an automatic full refund.
+                    </p>
+                    <div style="display: flex; gap: 10px;">
+                        <form action="{{ path('passenger_booking_confirm', { id: booking.id }) }}" method="POST">
+                            <button type="submit" class="btn btn-sm btn-primary">
+                                ✓ Accept Modification
+                            </button>
+                        </form>
+                        <form action="{{ path('passenger_booking_refuse', { id: booking.id }) }}" method="POST">
+                            <button type="submit" class="btn btn-sm btn-danger">
+                                ✕ Decline & Get Full Refund
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            {% elseif booking.status == 'confirmed' %}
+                <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px; border-top: 1px solid var(--border); padding-top: 12px;">
+                    <form action="{{ path('passenger_booking_cancel', { id: booking.id }) }}" method="POST" onsubmit="return confirm('Are you sure you want to cancel this booking? A simulated refund will be issued and seats released.');">
+                        <button type="submit" class="btn btn-sm btn-outline" style="color: var(--danger); border-color: #fca5a5;">
+                            Cancel Reservation
+                        </button>
+                    </form>
+                </div>
+            {% elseif booking.status == 'completed' %}
+                <!-- Rating Form for Completed Trip -->
+                <div style="background: #f8fafc; border: 1px solid var(--border); border-radius: var(--radius-md); padding: 14px; margin-top: 12px;">
+                    <h4 style="font-size: 0.9rem; font-weight: 700; margin-bottom: 8px;">Rate Your Driver</h4>
+                    <form action="{{ path('passenger_booking_review', { id: booking.id }) }}" method="POST" style="display: flex; gap: 10px; align-items: flex-end;">
+                        <div style="width: 120px;">
+                            <label class="form-label" style="font-size: 0.75rem;">Stars</label>
+                            <select name="rating" class="form-control" style="padding: 6px;">
+                                <option value="5">★★★★★ (5)</option>
+                                <option value="4">★★★★☆ (4)</option>
+                                <option value="3">★★★☆☆ (3)</option>
+                                <option value="2">★★☆☆☆ (2)</option>
+                                <option value="1">★☆☆☆☆ (1)</option>
+                            </select>
+                        </div>
+                        <div style="flex: 1;">
+                            <label class="form-label" style="font-size: 0.75rem;">Comment (Optional)</label>
+                            <input type="text" name="comment" class="form-control" placeholder="Punctual, safe driving..." style="padding: 6px;">
+                        </div>
+                        <button type="submit" class="btn btn-sm btn-accent" style="height: 36px;">
+                            Submit Review
+                        </button>
+                    </form>
+                </div>
+            {% endif %}
+        </div>
+    {% else %}
+        <div class="card" style="text-align: center; padding: 48px 24px;">
+            <div style="font-size: 2.2rem; margin-bottom: 12px;">🎟️</div>
+            <h3 style="font-size: 1.2rem; font-weight: 700; margin-bottom: 6px;">You have no reservations yet</h3>
+            <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 18px;">
+                Find a shared ride between Moroccan cities and reserve your seats with simulated payment.
+            </p>
+            <a href="{{ path('app_search') }}" class="btn btn-primary">Find a Ride</a>
+        </div>
+    {% endfor %}
+</div>
+{% endblock %}

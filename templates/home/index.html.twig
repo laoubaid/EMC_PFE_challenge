@@ -1,0 +1,155 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}CarpoolMorocco — Smart Inter-City Ridesharing{% endblock %}
+
+{% block body %}
+<!-- Hero Section with Search Engine -->
+<div style="background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); border-radius: var(--radius-lg); padding: 48px 36px; color: white; margin-bottom: 36px; box-shadow: var(--shadow-md);">
+    <div style="max-width: 760px; margin: 0 auto; text-align: center;">
+        <span style="background: rgba(255,255,255,0.2); padding: 4px 14px; border-radius: 9999px; font-size: 0.82rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">
+            Regional Carpooling in Morocco
+        </span>
+        <h1 style="font-size: 2.3rem; font-weight: 800; margin: 16px 0 10px; letter-spacing: -0.02em;">
+            Travel Between Moroccan Cities at the Best Price
+        </h1>
+        <p style="font-size: 1.05rem; opacity: 0.9; margin-bottom: 30px;">
+            Book whole routes or intermediate stops between Casablanca, Marrakech, Agadir, Rabat, Tangier and more.
+        </p>
+
+        <!-- Search Bar Card -->
+        <div style="background: white; border-radius: var(--radius-md); padding: 20px; box-shadow: var(--shadow-lg); color: var(--text-main); text-align: left;">
+            <form action="{{ path('app_search') }}" method="GET" style="display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 14px; align-items: end;">
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label class="form-label" style="font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted);">Leaving From</label>
+                    <select name="origin" class="form-control" required>
+                        <option value="">Select departure city...</option>
+                        {% for city in cities %}
+                            <option value="{{ city.id }}">{{ city.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label class="form-label" style="font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted);">Going To</label>
+                    <select name="destination" class="form-control" required>
+                        <option value="">Select destination city...</option>
+                        {% for city in cities %}
+                            <option value="{{ city.id }}">{{ city.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label class="form-label" style="font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted);">Date (Optional)</label>
+                    <input type="date" name="date" class="form-control" min="{{ 'now'|date('Y-m-d') }}">
+                </div>
+
+                <div>
+                    <button type="submit" class="btn btn-primary" style="height: 44px; padding: 0 24px; font-weight: 700; width: 100%;">
+                        🔍 Search
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Popular Quick Corridor Tags -->
+        <div style="margin-top: 18px; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; font-size: 0.85rem; opacity: 0.95;">
+            <span style="font-weight: 600;">Popular:</span>
+            <a href="{{ path('app_search', { origin: 1, destination: 3 }) }}" style="color: white; text-decoration: underline;">Casablanca → Marrakech</a>
+            <span>·</span>
+            <a href="{{ path('app_search', { origin: 3, destination: 4 }) }}" style="color: white; text-decoration: underline;">Marrakech → Agadir</a>
+            <span>·</span>
+            <a href="{{ path('app_search', { origin: 6, destination: 2 }) }}" style="color: white; text-decoration: underline;">Tangier → Rabat</a>
+        </div>
+    </div>
+</div>
+
+<!-- Features Section -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-bottom: 36px;">
+    <div class="card" style="margin-bottom: 0;">
+        <div style="font-size: 1.8rem; margin-bottom: 10px;">📍</div>
+        <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 6px;">Intermediate Stops</h3>
+        <p style="font-size: 0.88rem; color: var(--text-muted);">
+            Book only the portion you need. When a passenger gets off at an intermediate city, the seat becomes instantly available for the rest of the journey!
+        </p>
+    </div>
+
+    <div class="card" style="margin-bottom: 0;">
+        <div style="font-size: 1.8rem; margin-bottom: 10px;">🔒</div>
+        <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 6px;">Zero Overbooking Guarantee</h3>
+        <p style="font-size: 0.88rem; color: var(--text-muted);">
+            Pessimistic transaction locking protects every seat. Two passengers booking at the exact same millisecond will never overbook.
+        </p>
+    </div>
+
+    <div class="card" style="margin-bottom: 0;">
+        <div style="font-size: 1.8rem; margin-bottom: 10px;">⭐</div>
+        <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 6px;">Fair Pricing & Reviews</h3>
+        <p style="font-size: 0.88rem; color: var(--text-muted);">
+            Distance-based pricing regulated by admin rate with a performance margin earned by top-rated drivers. Mutual reviews post-trip.
+        </p>
+    </div>
+</div>
+
+<!-- Upcoming Featured Rides -->
+<div class="card">
+    <div class="card-header">
+        <div>
+            <h2 class="card-title">Upcoming Scheduled Rides</h2>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 2px;">Verified drivers with published itineraries</p>
+        </div>
+        <a href="{{ path('app_search') }}" class="btn btn-outline btn-sm">Explore All</a>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px;">
+        {% for item in featuredTrips %}
+            {% set trip = item.trip %}
+            <div style="border: 1px solid var(--border); border-radius: var(--radius-md); padding: 16px; background: #fafafa; display: flex; flex-direction: column; justify-content: space-between; gap: 14px;">
+                <div>
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
+                        <div>
+                            <span style="font-weight: 800; font-size: 1.1rem; color: var(--text-main);">
+                                {{ item.originCity.name }} → {{ item.destinationCity.name }}
+                            </span>
+                            <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 2px;">
+                                📅 {{ trip.departureTime|date('D, d M Y at H:i') }}
+                            </div>
+                        </div>
+                        <span class="badge badge-scheduled">{{ trip.status }}</span>
+                    </div>
+
+                    <!-- Stops timeline pills -->
+                    <div style="display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 12px; font-size: 0.78rem;">
+                        {% for wp in trip.orderedWaypoints %}
+                            <span style="background: white; border: 1px solid var(--border); padding: 2px 6px; border-radius: 4px;">
+                                {{ wp.city.name }} ({{ wp.arrivalTime|date('H:i') }})
+                            </span>
+                            {% if not loop.last %}<span>→</span>{% endif %}
+                        {% endfor %}
+                    </div>
+
+                    <!-- Driver & Vehicle -->
+                    <div style="display: flex; align-items: center; justify-content: space-between; font-size: 0.85rem; border-top: 1px solid var(--border); padding-top: 10px;">
+                        <div>
+                            <strong>{{ trip.driver.fullName }}</strong>
+                            <span style="color: #d97706; font-weight: 700;">★ {{ trip.driver.ratingAvg|number_format(1) }}</span>
+                            <div style="font-size: 0.75rem; color: var(--text-muted);">{{ trip.vehicle.displayName }}</div>
+                        </div>
+                        <div style="text-align: right;">
+                            <span style="font-weight: 700; color: var(--success); font-size: 0.88rem;">
+                                {{ item.availableSeats }} seat(s) left
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <a href="{{ path('app_trip_show', { id: trip.id }) }}" class="btn btn-primary" style="width: 100%;">
+                    View Details & Book
+                </a>
+            </div>
+        {% else %}
+            <p style="color: var(--text-muted); text-align: center; grid-column: 1 / -1;">No upcoming scheduled rides at the moment.</p>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

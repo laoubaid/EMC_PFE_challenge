@@ -1,0 +1,122 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Driver Workspace — CarpoolMorocco{% endblock %}
+
+{% block body %}
+<div class="page-header" style="margin-bottom: 24px;">
+    <div>
+        <h1 style="font-size: 1.6rem; font-weight: 800;">Driver Workspace</h1>
+        <p style="font-size: 0.9rem; color: var(--text-muted);">Manage your published rides, passenger manifests, and vehicle fleet</p>
+    </div>
+    <div style="display: flex; gap: 10px;">
+        <a href="{{ path('driver_vehicles') }}" class="btn btn-outline">
+            🚗 Manage Vehicles ({{ driver.vehicles|length }})
+        </a>
+        <a href="{{ path('driver_trip_new') }}" class="btn btn-primary">
+            + Publish a Ride
+        </a>
+    </div>
+</div>
+
+<!-- Driver Stats Overview -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 18px; margin-bottom: 28px;">
+    <div class="card" style="margin-bottom: 0;">
+        <span style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Driver Rating</span>
+        <div style="font-size: 2rem; font-weight: 800; color: #d97706; margin: 4px 0;">
+            ★ {{ driver.ratingAvg|number_format(1) }}
+        </div>
+        <span style="font-size: 0.8rem; color: var(--text-muted);">Based on {{ driver.ratingCount }} community reviews</span>
+    </div>
+
+    <div class="card" style="margin-bottom: 0;">
+        <span style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Published Trips</span>
+        <div style="font-size: 2rem; font-weight: 800; color: var(--primary); margin: 4px 0;">
+            {{ tripsData|length }}
+        </div>
+        <span style="font-size: 0.8rem; color: var(--text-muted);">Total itineraries created</span>
+    </div>
+
+    <div class="card" style="margin-bottom: 0;">
+        <span style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Total Passengers</span>
+        <div style="font-size: 2rem; font-weight: 800; color: var(--success); margin: 4px 0;">
+            {{ totalPassengers }}
+        </div>
+        <span style="font-size: 0.8rem; color: var(--text-muted);">Seats booked across all rides</span>
+    </div>
+
+    <div class="card" style="margin-bottom: 0;">
+        <span style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Pricing Margin Tier</span>
+        <div style="font-size: 2rem; font-weight: 800; color: var(--text-main); margin: 4px 0;">
+            +{{ (5 + max(0, driver.ratingAvg - 3))|number_format(1) }}%
+        </div>
+        <span style="font-size: 0.8rem; color: var(--text-muted);">Bonus earned on road distance</span>
+    </div>
+</div>
+
+<!-- Published Trips Table -->
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">My Published Rides</h2>
+        <a href="{{ path('driver_trip_new') }}" class="btn btn-sm btn-primary">+ New Ride</a>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Route (Origin → Destination)</th>
+                <th>Departure Time</th>
+                <th>Vehicle</th>
+                <th>Passengers</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in tripsData %}
+                {% set trip = item.trip %}
+                <tr>
+                    <td><strong>#{{ trip.id }}</strong></td>
+                    <td>
+                        <div style="font-weight: 700; font-size: 0.95rem;">
+                            {{ trip.originCity.name }} → {{ trip.destinationCity.name }}
+                        </div>
+                        <div style="font-size: 0.78rem; color: var(--text-muted);">
+                            {{ trip.waypoints|length }} stops · {{ trip.totalDistanceKm }} km total
+                        </div>
+                    </td>
+                    <td>
+                        <strong>{{ trip.departureTime|date('d/m/Y H:i') }}</strong>
+                    </td>
+                    <td>
+                        {{ trip.vehicle.brand }} {{ trip.vehicle.model }}
+                        <div style="font-size: 0.75rem; color: var(--text-muted);">{{ trip.vehicle.plate }}</div>
+                    </td>
+                    <td>
+                        <span class="badge" style="background: #e0f2fe; color: #0369a1;">
+                            {{ item.confirmedCount }} reservation(s)
+                        </span>
+                    </td>
+                    <td>
+                        <span class="badge badge-{{ trip.status }}">{{ trip.status }}</span>
+                    </td>
+                    <td>
+                        <a href="{{ path('driver_trip_show', { id: trip.id }) }}" class="btn btn-sm btn-outline">
+                            Manage Passengers & Stops →
+                        </a>
+                    </td>
+                </tr>
+            {% else %}
+                <tr>
+                    <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 36px;">
+                        You have not published any rides yet.
+                        <div style="margin-top: 10px;">
+                            <a href="{{ path('driver_trip_new') }}" class="btn btn-primary btn-sm">Publish Your First Ride</a>
+                        </div>
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

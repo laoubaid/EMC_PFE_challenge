@@ -14,6 +14,10 @@ use Symfony\Component\Security\Core\User\UserInterface;
 #[ORM\Table(name: '`user`')]
 class User implements UserInterface, PasswordAuthenticatedUserInterface
 {
+    public const ROLE_ADMIN = 'ROLE_ADMIN';
+    public const ROLE_DRIVER = 'ROLE_DRIVER';
+    public const ROLE_PASSENGER = 'ROLE_USER';
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
@@ -159,6 +163,39 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         $this->roles = $roles;
 
         return $this;
+    }
+
+    public function addRole(string $role): static
+    {
+        if (!in_array($role, $this->roles, true)) {
+            $this->roles[] = $role;
+        }
+
+        return $this;
+    }
+
+    public function removeRole(string $role): static
+    {
+        $this->roles = array_values(array_filter($this->roles, static fn(string $r) => $r !== $role));
+
+        return $this;
+    }
+
+    public function isDriver(): bool
+    {
+        return in_array(self::ROLE_DRIVER, $this->getRoles(), true);
+    }
+
+    public function getAccountType(): string
+    {
+        if ($this->isAdmin()) {
+            return 'Admin';
+        }
+        if ($this->isDriver()) {
+            return 'Driver';
+        }
+
+        return 'Passenger';
     }
 
     public function getPassword(): ?string
