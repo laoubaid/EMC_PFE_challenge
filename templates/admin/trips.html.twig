@@ -1,0 +1,105 @@
+{% extends 'admin/layout.html.twig' %}
+
+{% block title %}Trips & Waypoints{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Trips & Intermediate Stops</h1>
+        <p class="page-subtitle">Inspect scheduled routes, intermediate stop waypoints, and per-leg seat capacity</p>
+    </div>
+</div>
+
+{% for item in tripsData %}
+    {% set trip = item.entity %}
+    {% set breakdown = item.breakdown %}
+    <div class="card">
+        <div class="card-header">
+            <div>
+                <h2 class="card-title" style="display: flex; align-items: center; gap: 10px;">
+                    Trip #{{ trip.id }}: {{ trip.originCity.name ?? 'Origin' }} → {{ trip.destinationCity.name ?? 'Destination' }}
+                    <span class="badge badge-{{ trip.status }}">{{ trip.status }}</span>
+                </h2>
+                <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 4px;">
+                    Driver: <strong>{{ trip.driver.fullName }}</strong> (Rating: {{ trip.driver.ratingAvg }}/5) ·
+                    Vehicle: <strong>{{ trip.vehicle.displayName }}</strong> ·
+                    Departure: <strong>{{ trip.departureTime|date('d/m/Y H:i') }}</strong> ·
+                    Total Capacity: <strong>{{ trip.totalSeats }} seats</strong>
+                </div>
+            </div>
+            <div>
+                <form action="{{ path('admin_trip_update_status', { id: trip.id }) }}" method="POST" style="display: inline-flex; gap: 6px;">
+                    <select name="status" class="form-control" style="width: auto; padding: 4px 8px; font-size: 0.82rem;">
+                        <option value="scheduled" {% if trip.status == 'scheduled' %}selected{% endif %}>Scheduled</option>
+                        <option value="active" {% if trip.status == 'active' %}selected{% endif %}>Active</option>
+                        <option value="completed" {% if trip.status == 'completed' %}selected{% endif %}>Completed</option>
+                        <option value="cancelled" {% if trip.status == 'cancelled' %}selected{% endif %}>Cancelled</option>
+                    </select>
+                    <button type="submit" class="btn btn-sm btn-outline">Update</button>
+                </form>
+            </div>
+        </div>
+
+        <div style="margin-bottom: 16px;">
+            <div style="font-size: 0.82rem; font-weight: 600; text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px;">
+                Route Waypoints (Stops)
+            </div>
+            <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center;">
+                {% for wp in trip.orderedWaypoints %}
+                    <div class="waypoint-pill">
+                        <strong>{{ wp.stopOrder }}. {{ wp.city.name }}</strong>
+                        <span style="color: var(--text-muted);">({{ wp.arrivalTime|date('H:i') }}, {{ wp.distanceFromOriginKm }}km)</span>
+                    </div>
+                    {% if not loop.last %}
+                        <span style="color: var(--text-muted);">→</span>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+
+        <div>
+            <div style="font-size: 0.82rem; font-weight: 600; text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px;">
+                Leg-by-Leg Seat Allocation (Segment Capacity Model)
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Leg</th>
+                        <th>Segment</th>
+                        <th>Occupied Seats</th>
+                        <th>Available Seats</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for leg in breakdown %}
+                        <tr>
+                            <td>Leg {{ leg.legIndex }}</td>
+                            <td><strong>{{ leg.fromCity }}</strong> → <strong>{{ leg.toCity }}</strong></td>
+                            <td>{{ leg.occupiedSeats }} / {{ leg.totalSeats }} seats occupied</td>
+                            <td>
+                                <strong style="color: {% if leg.availableSeats > 0 %}var(--success){% else %}var(--danger){% endif %};">
+                                    {{ leg.availableSeats }} seat(s) free
+                                </strong>
+                            </td>
+                            <td>
+                                {% if leg.availableSeats == 0 %}
+                                    <span class="badge badge-cancelled">FULL</span>
+                                {% else %}
+                                    <span class="badge badge-active">BOOKABLE</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% else %}
+                        <tr><td colspan="5" style="color: var(--text-muted);">No intermediate breakdown available.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% else %}
+    <div class="card">
+        <p style="text-align: center; color: var(--text-muted);">No trips registered yet. Run <code>php bin/console app:seed</code> to populate demo data.</p>
+    </div>
+{% endfor %}
+{% endblock %}

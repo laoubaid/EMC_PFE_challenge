@@ -1,0 +1,83 @@
+{% extends 'admin/layout.html.twig' %}
+
+{% block title %}Bookings Management{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Bookings & Simulated Payments</h1>
+        <p class="page-subtitle">Track passenger seat reservations and simulated payment transactions</p>
+    </div>
+</div>
+
+<div class="card">
+    <table>
+        <thead>
+            <tr>
+                <th>Booking ID</th>
+                <th>Trip</th>
+                <th>Passenger</th>
+                <th>Segment (Board → Alight)</th>
+                <th>Seats</th>
+                <th>Distance</th>
+                <th>Price & Payment</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for booking in bookings %}
+                <tr>
+                    <td><strong>#{{ booking.id }}</strong></td>
+                    <td>
+                        Trip #{{ booking.trip.id }}
+                        <div style="font-size: 0.78rem; color: var(--text-muted);">
+                            Driver: {{ booking.trip.driver.fullName }}
+                        </div>
+                    </td>
+                    <td>
+                        <strong>{{ booking.passenger.fullName }}</strong>
+                        <div style="font-size: 0.78rem; color: var(--text-muted);">{{ booking.passenger.email }}</div>
+                    </td>
+                    <td>
+                        <span class="badge" style="background: #e2e8f0; color: #1e293b;">
+                            {{ booking.boardWaypoint.city.name }}
+                        </span>
+                        →
+                        <span class="badge" style="background: #e2e8f0; color: #1e293b;">
+                            {{ booking.alightWaypoint.city.name }}
+                        </span>
+                    </td>
+                    <td><strong>{{ booking.seatsCount }}</strong></td>
+                    <td>{{ booking.distanceKm }} km</td>
+                    <td>
+                        <strong>{{ booking.price }} DH</strong>
+                        {% if booking.payment %}
+                            <div style="font-size: 0.78rem;">
+                                Payment: <span class="badge badge-{{ booking.payment.status }}">{{ booking.payment.status }}</span>
+                            </div>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="badge badge-{{ booking.status }}">{{ booking.status }}</span>
+                    </td>
+                    <td>
+                        <form action="{{ path('admin_booking_update_status', { id: booking.id }) }}" method="POST" style="display: flex; gap: 4px;">
+                            <select name="status" class="form-control" style="width: auto; padding: 2px 6px; font-size: 0.78rem;">
+                                <option value="confirmed" {% if booking.status == 'confirmed' %}selected{% endif %}>Confirmed</option>
+                                <option value="pending_confirmation" {% if booking.status == 'pending_confirmation' %}selected{% endif %}>Pending</option>
+                                <option value="completed" {% if booking.status == 'completed' %}selected{% endif %}>Completed</option>
+                                <option value="cancelled_by_passenger" {% if booking.status == 'cancelled_by_passenger' %}selected{% endif %}>Cancelled (Pax)</option>
+                                <option value="cancelled_by_driver" {% if booking.status == 'cancelled_by_driver' %}selected{% endif %}>Cancelled (Driver)</option>
+                            </select>
+                            <button type="submit" class="btn btn-sm btn-outline">Save</button>
+                        </form>
+                    </td>
+                </tr>
+            {% else %}
+                <tr><td colspan="9" style="text-align: center; color: var(--text-muted);">No bookings found.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

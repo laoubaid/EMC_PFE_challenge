@@ -1,0 +1,93 @@
+{% extends 'admin/layout.html.twig' %}
+
+{% block title %}Pricing Configuration{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Pricing Engine Configuration</h1>
+        <p class="page-subtitle">Configure base rate per kilometer and negotiation margin formula</p>
+    </div>
+</div>
+
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+    <div>
+        <div class="card">
+            <h2 class="card-title" style="margin-bottom: 12px;">Active Pricing Formula</h2>
+            <p style="font-size: 0.88rem; color: var(--text-muted); line-height: 1.5; margin-bottom: 16px;">
+                As documented in <code>docs/DECISIONS.md</code>, segment pricing is calculated from road distance, a base rate per km, and a dynamic negotiation margin:
+            </p>
+            <div style="background: #f1f5f9; padding: 14px; border-radius: 8px; font-family: monospace; font-size: 0.88rem; margin-bottom: 16px; border: 1px solid var(--border);">
+                BasePrice = Distance (km) × PricePerKm<br>
+                Margin = BaseMargin (e.g. 5%) + Max(0, Rating - 3) × 1%<br>
+                FinalPrice = BasePrice × (1 + Margin)
+            </div>
+
+            {% if activeConfig %}
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <div style="background: #fafafa; border: 1px solid var(--border); border-radius: 8px; padding: 12px;">
+                        <span class="stat-label">Price per KM</span>
+                        <div style="font-size: 1.5rem; font-weight: 700; color: var(--primary);">{{ activeConfig.pricePerKm }} DH</div>
+                    </div>
+                    <div style="background: #fafafa; border: 1px solid var(--border); border-radius: 8px; padding: 12px;">
+                        <span class="stat-label">Base Margin</span>
+                        <div style="font-size: 1.5rem; font-weight: 700; color: var(--primary);">{{ activeConfig.baseMargin * 100 }}%</div>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="card">
+            <h2 class="card-title" style="margin-bottom: 16px;">Update / Activate New Pricing</h2>
+            <form action="{{ path('admin_pricing') }}" method="POST">
+                <div class="form-group">
+                    <label class="form-label" for="pricePerKm">Price per Kilometer (DH/km)</label>
+                    <input type="number" step="0.1" min="0.5" max="50" class="form-control" id="pricePerKm" name="pricePerKm" value="{{ activeConfig ? activeConfig.pricePerKm : '5.0' }}" required>
+                    <div class="form-hint">E.g. 1.5 DH per kilometer for inter-city travel in Morocco.</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="baseMargin">Base Negotiation Margin (%)</label>
+                    <input type="number" step="0.5" min="0" max="50" class="form-control" id="baseMargin" name="baseMargin" value="{{ activeConfig ? (activeConfig.baseMargin * 100) : '5.0' }}" required>
+                    <div class="form-hint">Base percentage added to distance price (5% by default). Drivers with rating &gt; 3 earn +1% per point.</div>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center;">
+                    Save & Activate New Pricing
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div>
+        <div class="card">
+            <h2 class="card-title" style="margin-bottom: 16px;">Pricing History & Audit Log</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Effective From</th>
+                        <th>Rate / KM</th>
+                        <th>Base Margin</th>
+                        <th>Updated By</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for conf in configs %}
+                        <tr>
+                            <td>
+                                {{ conf.effectiveFrom|date('d/m/Y H:i') }}
+                                {% if loop.first %}
+                                    <span class="badge badge-active" style="margin-left: 6px;">CURRENT</span>
+                                {% endif %}
+                            </td>
+                            <td><strong>{{ conf.pricePerKm }} DH</strong></td>
+                            <td>{{ conf.baseMargin * 100 }}%</td>
+                            <td>{{ conf.updatedBy ? conf.updatedBy.fullName : 'System Seed' }}</td>
+                        </tr>
+                    {% else %}
+                        <tr><td colspan="4" style="color: var(--text-muted); text-align: center;">No pricing history recorded yet.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

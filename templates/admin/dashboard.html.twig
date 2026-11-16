@@ -1,0 +1,116 @@
+{% extends 'admin/layout.html.twig' %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Platform Dashboard</h1>
+        <p class="page-subtitle">Real-time status of inter-city carpooling across Morocco</p>
+    </div>
+    <div>
+        <a href="{{ path('admin_pricing') }}" class="btn btn-outline">
+            ⚙️ Configure Pricing ({{ activePricing ? activePricing.pricePerKm ~ ' DH/km' : 'Default' }})
+        </a>
+    </div>
+</div>
+
+<div class="grid-stats">
+    <div class="stat-card">
+        <span class="stat-label">Total Published Trips</span>
+        <span class="stat-value">{{ totalTrips }}</span>
+        <span class="stat-hint">Multi-stop routes across Morocco</span>
+    </div>
+    <div class="stat-card">
+        <span class="stat-label">Total Reservations</span>
+        <span class="stat-value">{{ totalBookings }}</span>
+        <span class="stat-hint">Active and completed segment bookings</span>
+    </div>
+    <div class="stat-card">
+        <span class="stat-label">Registered Users</span>
+        <span class="stat-value">{{ totalUsers }}</span>
+        <span class="stat-hint">Drivers and passengers combined</span>
+    </div>
+    <div class="stat-card">
+        <span class="stat-label">Registered Vehicles</span>
+        <span class="stat-value">{{ totalVehicles }}</span>
+        <span class="stat-hint">Verified driver cars</span>
+    </div>
+</div>
+
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">Recent Trips</h2>
+            <a href="{{ path('admin_trips') }}" class="btn btn-sm btn-outline">View All</a>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Trip ID</th>
+                    <th>Route</th>
+                    <th>Driver</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for trip in trips %}
+                    <tr>
+                        <td><strong>#{{ trip.id }}</strong></td>
+                        <td>
+                            {{ trip.originCity.name ?? 'Start' }} → {{ trip.destinationCity.name ?? 'End' }}
+                            <div style="font-size: 0.78rem; color: var(--text-muted);">
+                                {{ trip.waypoints|length }} stops · {{ trip.departureTime|date('d M Y H:i') }}
+                            </div>
+                        </td>
+                        <td>{{ trip.driver.fullName }}</td>
+                        <td>
+                            <span class="badge badge-{{ trip.status }}">{{ trip.status }}</span>
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr><td colspan="4" style="text-align: center; color: var(--text-muted);">No trips registered yet.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">Recent Bookings</h2>
+            <a href="{{ path('admin_bookings') }}" class="btn btn-sm btn-outline">View All</a>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Passenger</th>
+                    <th>Segment</th>
+                    <th>Price</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for booking in bookings %}
+                    <tr>
+                        <td><strong>#{{ booking.id }}</strong></td>
+                        <td>{{ booking.passenger.fullName }}</td>
+                        <td>
+                            {{ booking.boardWaypoint.city.name }} → {{ booking.alightWaypoint.city.name }}
+                            <div style="font-size: 0.78rem; color: var(--text-muted);">
+                                {{ booking.seatsCount }} seat(s) · {{ booking.distanceKm }} km
+                            </div>
+                        </td>
+                        <td><strong>{{ booking.price }} DH</strong></td>
+                        <td>
+                            <span class="badge badge-{{ booking.status }}">{{ booking.status }}</span>
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr><td colspan="5" style="text-align: center; color: var(--text-muted);">No bookings made yet.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -18,8 +18,8 @@ YES, as long as the time and driver's location allows for it:
 
 the price is calculated based on the distance and a value (price per km) plus an negotiation margin decided by rating:
 
-- the price per km is a const determined by admin (e.g 5dh per km).
-- negotiation margin is 5% of the distance * km price + 1% for each point above 3 in rating.
+- the price per km is a const determined by admin (e.g 1.5dh per km).
+- negotiation margin is 5% of the distance * km price + 1% for each point in rating.
 - distance is the distance of the trip segment.
 
 Price = (Distance in km * Price per km) + (Distance in km * Price per km * (0.05 + rating * 0.01))

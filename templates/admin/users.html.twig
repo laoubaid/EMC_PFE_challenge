@@ -1,0 +1,67 @@
+{% extends 'admin/layout.html.twig' %}
+
+{% block title %}Users & Vehicles{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Users & Registered Vehicles</h1>
+        <p class="page-subtitle">Unified accounts (passengers & drivers) and their verified vehicles</p>
+    </div>
+</div>
+
+<div class="card">
+    <table>
+        <thead>
+            <tr>
+                <th>User ID</th>
+                <th>Full Name</th>
+                <th>Email & Phone</th>
+                <th>Role(s)</th>
+                <th>Rating (Score / Count)</th>
+                <th>Registered Vehicles</th>
+                <th>Member Since</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for user in users %}
+                <tr>
+                    <td><strong>#{{ user.id }}</strong></td>
+                    <td>
+                        <strong>{{ user.fullName }}</strong>
+                        {% if user.isAdmin %}
+                            <span class="badge badge-scheduled" style="margin-left: 6px;">ADMIN</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {{ user.email }}
+                        <div style="font-size: 0.78rem; color: var(--text-muted);">{{ user.phone ?? 'No phone' }}</div>
+                    </td>
+                    <td>
+                        {% for role in user.roles %}
+                            <span class="badge" style="background: #f1f5f9; color: #475569;">{{ role }}</span>
+                        {% endfor %}
+                    </td>
+                    <td>
+                        <strong style="color: #d97706;">★ {{ user.ratingAvg|number_format(1) }}</strong>
+                        <span style="font-size: 0.8rem; color: var(--text-muted);">({{ user.ratingCount }} reviews)</span>
+                    </td>
+                    <td>
+                        {% for vehicle in user.vehicles %}
+                            <div style="font-size: 0.85rem;">
+                                🚗 <strong>{{ vehicle.brand }} {{ vehicle.model }}</strong>
+                                <span style="font-size: 0.75rem; color: var(--text-muted);">({{ vehicle.plate }}, {{ vehicle.seats }} seats)</span>
+                            </div>
+                        {% else %}
+                            <span style="color: var(--text-muted); font-size: 0.82rem;">Passenger (no vehicle)</span>
+                        {% endfor %}
+                    </td>
+                    <td>{{ user.createdAt|date('d/m/Y') }}</td>
+                </tr>
+            {% else %}
+                <tr><td colspan="7" style="text-align: center; color: var(--text-muted);">No users found.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
