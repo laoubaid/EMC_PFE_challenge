@@ -7,6 +7,7 @@ use App\Entity\Trip;
 use App\Entity\User;
 use App\Entity\Waypoint;
 use App\Repository\PricingConfigRepository;
+use App\Routing\TripRouteUpdater;
 
 class PricingCalculator
 {
@@ -52,10 +53,10 @@ class PricingCalculator
         ?Trip $trip = null,
         ?PricingConfig $config = null
     ): float {
-        $distance = abs((float) $alight->getDistanceFromOriginKm() - (float) $board->getDistanceFromOriginKm());
+        $segment = TripRouteUpdater::segment($board, $alight);
         $effectiveTrip = $trip ?? $board->getTrip();
         $driverRating = $effectiveTrip?->getDriver()?->getRatingAvg() ?? 4.0;
 
-        return $this->calculateSegmentPrice($distance, $driverRating, $config);
+        return $this->calculateSegmentPrice($segment->distanceKm, $driverRating, $config);
     }
 }

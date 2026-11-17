@@ -58,4 +58,30 @@ class PricingCalculatorTest extends TestCase
         $price = $this->calculator->calculateSegmentPrice(200.0, 5.0, $config);
         $this->assertEquals(321.00, $price);
     }
+
+    public function testPricingChangesWhenWaypointRouteDistanceChanges(): void
+    {
+        $config = new PricingConfig();
+        $config->setPricePerKm(2.0);
+        $config->setBaseMargin(0.05);
+
+        $board = new \App\Entity\Waypoint();
+        $board->setDistanceFromOriginKm(50.0);
+
+        $alight = new \App\Entity\Waypoint();
+        $alight->setDistanceFromOriginKm(150.0); // 100 km segment
+
+        // Default driver rating is 4.0 -> margin = 5% + (4 - 3)*1% = 6%
+        // 100 km * 2.0 * 1.06 = 212.00 DH
+        $priceBefore = $this->calculator->calculateBetweenWaypoints($board, $alight, null, $config);
+        $this->assertEquals(212.00, $priceBefore);
+
+        // Route changes: detour adds 30 km to alight stop
+        $alight->setDistanceFromOriginKm(180.0); // 130 km segment
+        // 130 km * 2.0 * 1.06 = 275.60 DH
+        $priceAfter = $this->calculator->calculateBetweenWaypoints($board, $alight, null, $config);
+        $this->assertEquals(275.60, $priceAfter);
+
+        $this->assertGreaterThan($priceBefore, $priceAfter);
+    }
 }

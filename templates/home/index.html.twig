@@ -112,7 +112,7 @@
                                 {{ item.originCity.name }} → {{ item.destinationCity.name }}
                             </span>
                             <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 2px;">
-                                📅 {{ trip.departureTime|date('D, d M Y at H:i') }}
+                                📅 {{ trip.departureTime|date('D, d M Y at H:i') }} · {{ trip.totalDisplayEta }}
                             </div>
                         </div>
                         <span class="badge badge-scheduled">{{ trip.status }}</span>

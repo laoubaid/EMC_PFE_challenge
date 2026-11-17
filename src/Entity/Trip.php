@@ -48,6 +48,13 @@ class Trip
     private ?\DateTimeImmutable $cancelledAt = null;
 
     /**
+     * GeoJSON LineString representing the trip road geometry.
+     * Stored format: ['type' => 'LineString', 'coordinates' => [[lon, lat], ...]]
+     */
+    #[ORM\Column(type: Types::JSON, nullable: true)]
+    private ?array $routeGeometry = null;
+
+    /**
      * @var Collection<int, Waypoint>
      */
     #[ORM\OneToMany(targetEntity: Waypoint::class, mappedBy: 'trip', cascade: ['persist', 'remove'], orphanRemoval: true)]
@@ -256,6 +263,35 @@ class Trip
         $dest = $this->getDestinationWaypoint();
 
         return $dest ? (float) $dest->getDistanceFromOriginKm() : 0.0;
+    }
+
+    public function getTotalDurationMin(): int
+    {
+        $dest = $this->getDestinationWaypoint();
+
+        return $dest?->getDurationFromOriginMin() ?? 0;
+    }
+
+    public function getTotalDisplayEta(): string
+    {
+        $dest = $this->getDestinationWaypoint();
+        if ($dest === null) {
+            return '0 km';
+        }
+
+        return $dest->getDisplayEtaFromOrigin();
+    }
+
+    public function getRouteGeometry(): ?array
+    {
+        return $this->routeGeometry;
+    }
+
+    public function setRouteGeometry(?array $routeGeometry): static
+    {
+        $this->routeGeometry = $routeGeometry;
+
+        return $this;
     }
 
     /**

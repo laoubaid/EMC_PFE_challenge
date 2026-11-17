@@ -82,7 +82,7 @@
                             {{ trip.originCity.name }} → {{ trip.destinationCity.name }}
                         </div>
                         <div style="font-size: 0.78rem; color: var(--text-muted);">
-                            {{ trip.waypoints|length }} stops · {{ trip.totalDistanceKm }} km total
+                            {{ trip.waypoints|length }} stops · {{ trip.totalDisplayEta }}
                         </div>
                     </td>
                     <td>

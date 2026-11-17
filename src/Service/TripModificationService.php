@@ -6,12 +6,14 @@ use App\Entity\Booking;
 use App\Entity\Notification;
 use App\Entity\Payment;
 use App\Entity\Trip;
+use App\Routing\TripRouteUpdater;
 use Doctrine\ORM\EntityManagerInterface;
 
 class TripModificationService
 {
     public function __construct(
-        private readonly EntityManagerInterface $entityManager
+        private readonly EntityManagerInterface $entityManager,
+        private readonly ?TripRouteUpdater $tripRouteUpdater = null
     ) {
     }
 
@@ -42,6 +44,11 @@ class TripModificationService
 
         if (isset($updates['departureTime']) && $updates['departureTime'] instanceof \DateTimeImmutable) {
             $trip->setDepartureTime($updates['departureTime']);
+            $this->tripRouteUpdater?->triggerRefresh($trip);
+        }
+
+        if (isset($updates['refreshRoute']) && $updates['refreshRoute'] === true) {
+            $this->tripRouteUpdater?->triggerRefresh($trip);
         }
 
         $trip->setModifiedAt($current);

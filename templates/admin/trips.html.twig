@@ -48,7 +48,7 @@
                 {% for wp in trip.orderedWaypoints %}
                     <div class="waypoint-pill">
                         <strong>{{ wp.stopOrder }}. {{ wp.city.name }}</strong>
-                        <span style="color: var(--text-muted);">({{ wp.arrivalTime|date('H:i') }}, {{ wp.distanceFromOriginKm }}km)</span>
+                        <span style="color: var(--text-muted);">({{ wp.arrivalTime|date('H:i') }} · {{ display_stop_eta(wp) }})</span>
                     </div>
                     {% if not loop.last %}
                         <span style="color: var(--text-muted);">→</span>

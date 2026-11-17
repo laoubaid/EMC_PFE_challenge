@@ -181,6 +181,7 @@ class SeedDataCommand extends Command
         $wp1_0->setStopOrder(0);
         $wp1_0->setArrivalTime($depTime1);
         $wp1_0->setDistanceFromOriginKm(0.0);
+        $wp1_0->setDurationFromOriginMin(0);
 
         $wp1_1 = new Waypoint();
         $wp1_1->setTrip($trip1);
@@ -188,6 +189,7 @@ class SeedDataCommand extends Command
         $wp1_1->setStopOrder(1);
         $wp1_1->setArrivalTime($depTime1->modify('+3 hours 15 minutes'));
         $wp1_1->setDistanceFromOriginKm(240.0);
+        $wp1_1->setDurationFromOriginMin(195);
 
         $wp1_2 = new Waypoint();
         $wp1_2->setTrip($trip1);
@@ -195,6 +197,7 @@ class SeedDataCommand extends Command
         $wp1_2->setStopOrder(2);
         $wp1_2->setArrivalTime($depTime1->modify('+6 hours 45 minutes'));
         $wp1_2->setDistanceFromOriginKm(500.0);
+        $wp1_2->setDurationFromOriginMin(405);
 
         $trip1->addWaypoint($wp1_0);
         $trip1->addWaypoint($wp1_1);
@@ -240,6 +243,7 @@ class SeedDataCommand extends Command
         $wp2_0->setStopOrder(0);
         $wp2_0->setArrivalTime($depTime2);
         $wp2_0->setDistanceFromOriginKm(0.0);
+        $wp2_0->setDurationFromOriginMin(0);
 
         $wp2_1 = new Waypoint();
         $wp2_1->setTrip($trip2);
@@ -247,6 +251,7 @@ class SeedDataCommand extends Command
         $wp2_1->setStopOrder(1);
         $wp2_1->setArrivalTime($depTime2->modify('+2 hours 30 minutes'));
         $wp2_1->setDistanceFromOriginKm(250.0);
+        $wp2_1->setDurationFromOriginMin(150);
 
         $wp2_2 = new Waypoint();
         $wp2_2->setTrip($trip2);
@@ -254,6 +259,7 @@ class SeedDataCommand extends Command
         $wp2_2->setStopOrder(2);
         $wp2_2->setArrivalTime($depTime2->modify('+4 hours'));
         $wp2_2->setDistanceFromOriginKm(340.0);
+        $wp2_2->setDurationFromOriginMin(240);
 
         $trip2->addWaypoint($wp2_0);
         $trip2->addWaypoint($wp2_1);
@@ -300,6 +306,7 @@ class SeedDataCommand extends Command
         $wp3_0->setStopOrder(0);
         $wp3_0->setArrivalTime($depTime3);
         $wp3_0->setDistanceFromOriginKm(0.0);
+        $wp3_0->setDurationFromOriginMin(0);
 
         $wp3_1 = new Waypoint();
         $wp3_1->setTrip($trip3);
@@ -307,6 +314,7 @@ class SeedDataCommand extends Command
         $wp3_1->setStopOrder(1);
         $wp3_1->setArrivalTime($depTime3->modify('+2 hours 45 minutes'));
         $wp3_1->setDistanceFromOriginKm(180.0);
+        $wp3_1->setDurationFromOriginMin(165);
 
         $trip3->addWaypoint($wp3_0);
         $trip3->addWaypoint($wp3_1);

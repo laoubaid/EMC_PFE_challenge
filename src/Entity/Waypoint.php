@@ -35,6 +35,9 @@ class Waypoint
     #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2, options: ['default' => '0.00'])]
     private string $distanceFromOriginKm = '0.00';
 
+    #[ORM\Column(type: Types::INTEGER, nullable: true)]
+    private ?int $durationFromOriginMin = null;
+
     /**
      * @var Collection<int, Booking>
      */
@@ -116,6 +119,41 @@ class Waypoint
         $this->distanceFromOriginKm = number_format((float) $distanceFromOriginKm, 2, '.', '');
 
         return $this;
+    }
+
+    public function getDurationFromOriginMin(): ?int
+    {
+        return $this->durationFromOriginMin;
+    }
+
+    public function setDurationFromOriginMin(?int $durationFromOriginMin): static
+    {
+        $this->durationFromOriginMin = $durationFromOriginMin;
+
+        return $this;
+    }
+
+    /**
+     * Returns formatted cumulative ETA string for display: "~X h Y min · Z km (approx.)"
+     * including 10% buffer and 5 min per intermediate stop.
+     */
+    public function getDisplayEtaFromOrigin(): string
+    {
+        if ($this->stopOrder === 0 || (float) $this->distanceFromOriginKm === 0.0) {
+            return '0 km (Departure)';
+        }
+
+        $distance = round((float) $this->distanceFromOriginKm, 1);
+
+        if ($this->durationFromOriginMin !== null) {
+            $intermediateCount = max(0, ($this->stopOrder ?? 1) - 1);
+            $buffered = \App\Routing\TripRouteUpdater::calculateBufferedDuration($this->durationFromOriginMin, $intermediateCount);
+            $timeStr = \App\Routing\TripRouteUpdater::formatDuration($buffered);
+
+            return sprintf('%s · %.1f km (approx.)', $timeStr, $distance);
+        }
+
+        return sprintf('%.1f km', $distance);
     }
 
     /**

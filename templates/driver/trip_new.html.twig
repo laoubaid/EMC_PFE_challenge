@@ -15,7 +15,7 @@
 
 <div style="max-width: 760px; margin: 0 auto;">
     <div class="card">
-        <form method="post" action="{{ path('driver_trip_new') }}">
+        <form method="post" action="{{ path('driver_trip_new') }}" id="new-trip-form">
             <!-- Step 1: Vehicle -->
             <div class="form-group">
                 <label for="vehicle_id" class="form-label">Vehicle to Use</label>
@@ -35,7 +35,7 @@
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
                 <div class="form-group">
                     <label for="origin_city_id" class="form-label">Departure City (Origin)</label>
-                    <select name="origin_city_id" id="origin_city_id" class="form-control" required>
+                    <select name="origin_city_id" id="origin_city_id" class="form-control" onchange="fetchRoutePreview()" required>
                         <option value="">Select city...</option>
                         {% for city in cities %}
                             <option value="{{ city.id }}">{{ city.name }}</option>
@@ -45,7 +45,7 @@
 
                 <div class="form-group">
                     <label for="dest_city_id" class="form-label">Destination City</label>
-                    <select name="dest_city_id" id="dest_city_id" class="form-control" required>
+                    <select name="dest_city_id" id="dest_city_id" class="form-control" onchange="fetchRoutePreview()" required>
                         <option value="">Select destination...</option>
                         {% for city in cities %}
                             <option value="{{ city.id }}">{{ city.name }}</option>
@@ -89,22 +89,44 @@
                 <div id="intermediate-stops-container"></div>
             </div>
 
-            <!-- Step 5: Final Destination Road Details -->
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; background: #f8fafc; border: 1px solid var(--border); border-radius: var(--radius-md); padding: 14px; margin-bottom: 24px;">
-                <div class="form-group" style="margin-bottom: 0;">
-                    <label for="dest_distance_km" class="form-label">Total Distance to Destination (km)</label>
-                    <input type="number" step="1" name="dest_distance_km" id="dest_distance_km" class="form-control" value="250" required>
-                    <div class="form-hint">Actual road distance used to calculate prices.</div>
+            <!-- Step 5: Final Destination Road Details (Computed by ORS Routing) -->
+            <div style="background: #f8fafc; border: 1px solid var(--border); border-radius: var(--radius-md); padding: 18px; margin-bottom: 24px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                    <h4 style="font-size: 0.95rem; font-weight: 700; margin: 0;">Road Route & Travel Details (Computed by OpenRouteService)</h4>
+                    <span id="route-badge" class="badge" style="display: none; background: #e0f2fe; color: #0369a1;">Route Ready</span>
                 </div>
 
-                <div class="form-group" style="margin-bottom: 0;">
-                    <label for="dest_arrival_time" class="form-label">Estimated Travel Time (Minutes)</label>
-                    <input type="number" step="15" name="dest_arrival_time" id="dest_arrival_time" class="form-control" value="180" required>
-                    <div class="form-hint">E.g. 180 min = 3 hours from departure.</div>
+                <!-- Loading State -->
+                <div id="route-loading" style="display: none; align-items: center; gap: 8px; font-size: 0.85rem; color: var(--primary); font-weight: 600; padding: 8px 0;">
+                    <span>⏳ Calculating driving distance & ETAs via OpenRouteService...</span>
+                </div>
+
+                <!-- Error Message -->
+                <div id="route-error" style="display: none; background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; padding: 10px 14px; border-radius: 6px; font-size: 0.85rem; margin-bottom: 14px;">
+                </div>
+
+                <!-- Readonly Computed Fields -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label for="dest_distance_km" class="form-label">Total Distance to Destination (km)</label>
+                        <input type="number" step="0.1" name="dest_distance_km" id="dest_distance_km" class="form-control" placeholder="Auto-calculated from route" readonly required style="background: #f1f5f9; cursor: not-allowed;">
+                        <div class="form-hint">Road distance computed automatically by OpenRouteService.</div>
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label for="dest_arrival_time" class="form-label">Estimated Travel Time (Minutes)</label>
+                        <input type="number" name="dest_arrival_time" id="dest_arrival_time" class="form-control" placeholder="Auto-calculated from route" readonly required style="background: #f1f5f9; cursor: not-allowed;">
+                        <div class="form-hint" id="dest-eta-hint">Raw driving duration without stop buffers.</div>
+                    </div>
+                </div>
+
+                <!-- Live ETA Preview Banner -->
+                <div id="route-summary-banner" style="display: none; margin-top: 14px; background: white; border: 1px solid #bfdbfe; border-radius: 6px; padding: 10px 14px; font-size: 0.88rem;">
+                    <strong>Live Itinerary Preview:</strong> <span id="route-summary-text" style="color: var(--primary); font-weight: 700;"></span>
                 </div>
             </div>
 
-            <button type="submit" class="btn btn-primary btn-lg" style="width: 100%;">
+            <button type="submit" id="submit-btn" class="btn btn-primary btn-lg" style="width: 100%;">
                 Publish This Ride
             </button>
         </form>
@@ -123,34 +145,154 @@ function addIntermediateStop() {
     stopCount++;
     const container = document.getElementById('intermediate-stops-container');
     const div = document.createElement('div');
-    div.id = 'stop-row-' + stopCount;
-    div.style = "display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 10px; align-items: end; background: #fafafa; border: 1px solid var(--border); border-radius: 8px; padding: 12px; margin-bottom: 10px;";
+    const rowId = 'stop-row-' + stopCount;
+    div.id = rowId;
+    div.className = 'intermediate-stop-row';
+    div.style = "display: flex; flex-direction: column; gap: 8px; background: #fafafa; border: 1px solid var(--border); border-radius: 8px; padding: 12px; margin-bottom: 12px;";
 
-    let cityOptions = '<option value="">Select stop city...</option>';
+    let cityOptions = '<option value="">Select intermediate city...</option>';
     citiesData.forEach(c => {
         cityOptions += `<option value="${c.id}">${c.name}</option>`;
     });
 
     div.innerHTML = `
-        <div class="form-group" style="margin-bottom:0;">
-            <label class="form-label" style="font-size:0.75rem;">Stop City #${stopCount}</label>
-            <select name="intermediate_cities[]" class="form-control" required>
-                ${cityOptions}
-            </select>
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px;">
+            <div style="flex: 1;">
+                <label class="form-label" style="font-size: 0.78rem; font-weight: 700; margin-bottom: 4px;">Intermediate Stop</label>
+                <select name="intermediate_cities[]" class="form-control stop-city-select" onchange="fetchRoutePreview()" required>
+                    ${cityOptions}
+                </select>
+            </div>
+            <button type="button" class="btn btn-sm btn-outline" style="color: var(--danger); height: 38px; margin-top: 20px;" onclick="removeIntermediateStop('${rowId}')" title="Remove Stop">
+                ✕
+            </button>
         </div>
-        <div class="form-group" style="margin-bottom:0;">
-            <label class="form-label" style="font-size:0.75rem;">Minutes After Departure</label>
-            <input type="number" name="intermediate_times[]" class="form-control" placeholder="e.g. 90" value="${stopCount * 90}" required>
+        <div class="stop-eta-display" style="font-size: 0.82rem; color: var(--text-muted); font-weight: 600; padding: 2px 4px;">
+            Select a city to calculate stop ETA...
         </div>
-        <div class="form-group" style="margin-bottom:0;">
-            <label class="form-label" style="font-size:0.75rem;">Km From Origin</label>
-            <input type="number" name="intermediate_distances[]" class="form-control" placeholder="e.g. 120" value="${stopCount * 120}" required>
-        </div>
-        <button type="button" class="btn btn-sm btn-outline" style="color:var(--danger); height:40px;" onclick="document.getElementById('stop-row-${stopCount}').remove()">
-            ✕
-        </button>
     `;
     container.appendChild(div);
+    fetchRoutePreview();
+}
+
+function removeIntermediateStop(rowId) {
+    const el = document.getElementById(rowId);
+    if (el) {
+        el.remove();
+        fetchRoutePreview();
+    }
+}
+
+let fetchTimeout = null;
+
+function fetchRoutePreview() {
+    if (fetchTimeout) {
+        clearTimeout(fetchTimeout);
+    }
+    fetchTimeout = setTimeout(doFetchRoutePreview, 250);
+}
+
+function doFetchRoutePreview() {
+    const originSelect = document.getElementById('origin_city_id');
+    const destSelect = document.getElementById('dest_city_id');
+    const originId = parseInt(originSelect.value, 10);
+    const destId = parseInt(destSelect.value, 10);
+
+    const errorDiv = document.getElementById('route-error');
+    const loadingDiv = document.getElementById('route-loading');
+    const badge = document.getElementById('route-badge');
+    const distInput = document.getElementById('dest_distance_km');
+    const timeInput = document.getElementById('dest_arrival_time');
+    const etaHint = document.getElementById('dest-eta-hint');
+    const banner = document.getElementById('route-summary-banner');
+    const bannerText = document.getElementById('route-summary-text');
+    const submitBtn = document.getElementById('submit-btn');
+
+    // Collect intermediate city IDs in order
+    const stopSelects = document.querySelectorAll('.stop-city-select');
+    const intermediateIds = [];
+    stopSelects.forEach(sel => {
+        const val = parseInt(sel.value, 10);
+        if (val > 0) {
+            intermediateIds.push(val);
+        }
+    });
+
+    if (!originId || !destId) {
+        distInput.value = '';
+        timeInput.value = '';
+        errorDiv.style.display = 'none';
+        loadingDiv.style.display = 'none';
+        badge.style.display = 'none';
+        banner.style.display = 'none';
+        return;
+    }
+
+    if (originId === destId) {
+        errorDiv.textContent = 'Departure and destination cannot be the same city.';
+        errorDiv.style.display = 'block';
+        badge.style.display = 'none';
+        banner.style.display = 'none';
+        distInput.value = '';
+        timeInput.value = '';
+        return;
+    }
+
+    errorDiv.style.display = 'none';
+    loadingDiv.style.display = 'flex';
+    badge.style.display = 'none';
+
+    fetch('{{ path('driver_route_preview') }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+            origin_city_id: originId,
+            dest_city_id: destId,
+            intermediate_city_ids: intermediateIds
+        })
+    })
+    .then(res => res.json())
+    .then(data => {
+        loadingDiv.style.display = 'none';
+        if (data.success) {
+            distInput.value = data.totalDistanceKm;
+            timeInput.value = data.totalDurationMin;
+            etaHint.textContent = `Raw: ${data.totalDurationMin} min | Buffered: ${data.totalBufferedDurationMin} min (${data.totalFormattedEta})`;
+
+            badge.style.display = 'inline-block';
+            banner.style.display = 'block';
+            bannerText.textContent = `${data.totalFormattedEta}`;
+
+            // Update intermediate stop ETA labels
+            const stopRows = document.querySelectorAll('.intermediate-stop-row');
+            stopRows.forEach((row, i) => {
+                const etaDisplay = row.querySelector('.stop-eta-display');
+                // stop 0 is origin, stops 1..n are intermediate
+                const stopData = data.stops ? data.stops[i + 1] : null;
+                if (etaDisplay && stopData) {
+                    etaDisplay.textContent = `📍 Stop #${i + 1} (${stopData.cityName}): ${stopData.formattedEta} from departure`;
+                    etaDisplay.style.color = 'var(--text-main)';
+                }
+            });
+        } else {
+            errorDiv.textContent = data.error || 'Failed to compute road route.';
+            errorDiv.style.display = 'block';
+            distInput.value = '';
+            timeInput.value = '';
+            banner.style.display = 'none';
+        }
+    })
+    .catch(err => {
+        loadingDiv.style.display = 'none';
+        errorDiv.textContent = 'Network or server error while computing route: ' + err.message;
+        errorDiv.style.display = 'block';
+        distInput.value = '';
+        timeInput.value = '';
+        banner.style.display = 'none';
+    });
 }
 </script>
 {% endblock %}

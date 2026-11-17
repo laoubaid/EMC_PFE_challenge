@@ -71,7 +71,7 @@
 
                         <div style="flex: 1; text-align: center;">
                             <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600;">
-                                {{ res.distanceKm }} km
+                                {{ res.displayEta ?? (res.distanceKm ~ ' km') }}
                             </div>
                             <div style="height: 2px; background: var(--primary); position: relative; margin: 4px 0;">
                                 <div style="width: 8px; height: 8px; border-radius: 50%; background: var(--primary); position: absolute; left: 0; top: -3px;"></div>

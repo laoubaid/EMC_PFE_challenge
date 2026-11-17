@@ -12,12 +12,17 @@ use App\Repository\CityRepository;
 use App\Repository\TripRepository;
 use App\Repository\UserRepository;
 use App\Repository\VehicleRepository;
+use App\Routing\RoutingService;
+use App\Routing\RoutingUnavailableException;
+use App\Routing\StopEta;
+use App\Routing\TripRouteUpdater;
 use App\Service\PricingCalculator;
 use App\Service\ReviewService;
 use App\Service\SeatAvailabilityService;
 use App\Service\TripModificationService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -59,12 +64,132 @@ class DriverController extends AbstractController
         ]);
     }
 
+    #[Route('/route-preview', name: 'driver_route_preview', methods: ['POST'])]
+    public function routePreview(
+        Request $request,
+        CityRepository $cityRepo,
+        RoutingService $routingService
+    ): JsonResponse {
+        $content = $request->getContent();
+        $data = json_decode($content, true);
+        if (!is_array($data)) {
+            $data = $request->request->all();
+        }
+
+        $originId = (int) ($data['origin_city_id'] ?? 0);
+        $destId = (int) ($data['dest_city_id'] ?? 0);
+        $intermediateIds = (array) ($data['intermediate_city_ids'] ?? []);
+
+        if ($originId <= 0 || $destId <= 0) {
+            return new JsonResponse([
+                'success' => false,
+                'error' => 'Please select both origin and destination cities.',
+            ], Response::HTTP_BAD_REQUEST);
+        }
+
+        if ($originId === $destId) {
+            return new JsonResponse([
+                'success' => false,
+                'error' => 'Origin and destination cities cannot be the same.',
+            ], Response::HTTP_BAD_REQUEST);
+        }
+
+        $originCity = $cityRepo->find($originId);
+        $destCity = $cityRepo->find($destId);
+
+        if (!$originCity || !$destCity) {
+            return new JsonResponse([
+                'success' => false,
+                'error' => 'Selected city not found.',
+            ], Response::HTTP_BAD_REQUEST);
+        }
+
+        $cities = [$originCity];
+        foreach ($intermediateIds as $id) {
+            $idInt = (int) $id;
+            if ($idInt > 0) {
+                $city = $cityRepo->find($idInt);
+                if ($city) {
+                    $cities[] = $city;
+                }
+            }
+        }
+        $cities[] = $destCity;
+
+        $points = [];
+        foreach ($cities as $city) {
+            if ($city->getLatitude() === null || $city->getLongitude() === null) {
+                return new JsonResponse([
+                    'success' => false,
+                    'error' => sprintf('Coordinates missing for city "%s".', $city->getName()),
+                ], Response::HTTP_BAD_REQUEST);
+            }
+            $points[] = [
+                'lat' => $city->getLatitude(),
+                'lon' => $city->getLongitude(),
+            ];
+        }
+
+        try {
+            $routeResult = $routingService->computeRoute($points);
+        } catch (RoutingUnavailableException $e) {
+            return new JsonResponse([
+                'success' => false,
+                'error' => 'OpenRouteService unavailable: ' . $e->getMessage(),
+            ], Response::HTTP_SERVICE_UNAVAILABLE);
+        } catch (\Throwable $e) {
+            return new JsonResponse([
+                'success' => false,
+                'error' => 'Routing calculation failed: ' . $e->getMessage(),
+            ], Response::HTTP_BAD_REQUEST);
+        }
+
+        $etas = $routeResult->etas;
+        $stopsData = [];
+
+        foreach ($cities as $idx => $city) {
+            $eta = $etas[$idx] ?? new StopEta(0.0, 0);
+            $intermediateCount = max(0, $idx - 1);
+            $bufferedDuration = TripRouteUpdater::calculateBufferedDuration($eta->durationMin, $intermediateCount);
+            $formattedEta = TripRouteUpdater::formatDisplayEta($eta->distanceKm, $eta->durationMin, $intermediateCount);
+            $formattedDuration = TripRouteUpdater::formatDuration($bufferedDuration);
+
+            $stopsData[] = [
+                'index' => $idx,
+                'cityId' => $city->getId(),
+                'cityName' => $city->getName(),
+                'distanceKm' => $eta->distanceKm,
+                'rawDurationMin' => $eta->durationMin,
+                'bufferedDurationMin' => $bufferedDuration,
+                'formattedEta' => ($idx === 0) ? '0 km (Departure)' : $formattedEta,
+                'formattedDuration' => $formattedDuration,
+            ];
+        }
+
+        $destinationEta = end($stopsData);
+        $totalDistanceKm = $destinationEta ? $destinationEta['distanceKm'] : 0.0;
+        $totalRawDurationMin = $destinationEta ? $destinationEta['rawDurationMin'] : 0;
+        $totalBufferedDurationMin = $destinationEta ? $destinationEta['bufferedDurationMin'] : 0;
+        $totalFormattedEta = $destinationEta ? $destinationEta['formattedEta'] : '';
+
+        return new JsonResponse([
+            'success' => true,
+            'totalDistanceKm' => $totalDistanceKm,
+            'totalDurationMin' => $totalRawDurationMin,
+            'totalBufferedDurationMin' => $totalBufferedDurationMin,
+            'totalFormattedEta' => $totalFormattedEta,
+            'stops' => $stopsData,
+            'geometry' => $routeResult->geometry,
+        ]);
+    }
+
     #[Route('/trips/new', name: 'driver_trip_new', methods: ['GET', 'POST'])]
     public function newTrip(
         Request $request,
         CityRepository $cityRepo,
         EntityManagerInterface $em,
-        PricingCalculator $pricingCalc
+        PricingCalculator $pricingCalc,
+        TripRouteUpdater $tripRouteUpdater
     ): Response {
         /** @var User $driver */
         $driver = $this->getUser();
@@ -90,9 +215,6 @@ class DriverController extends AbstractController
             $depDate = (string) $request->request->get('departure_date');
             $depTime = (string) $request->request->get('departure_time');
             $totalSeats = (int) $request->request->get('total_seats', 3);
-            $originDist = 0.0;
-            $destDist = (float) $request->request->get('dest_distance_km', 200.0);
-            $arrTime = (string) $request->request->get('dest_arrival_time');
 
             $originCity = $cityRepo->find($originCityId);
             $destCity = $destCityId ? $cityRepo->find($destCityId) : null;
@@ -122,44 +244,42 @@ class DriverController extends AbstractController
             $wpOrigin->setStopOrder(0);
             $wpOrigin->setArrivalTime($departureDateTime);
             $wpOrigin->setDistanceFromOriginKm(0.0);
+            $wpOrigin->setDurationFromOriginMin(0);
             $trip->addWaypoint($wpOrigin);
 
             // Intermediate stops (if provided)
             $stopOrder = 1;
             $interCities = $request->request->all('intermediate_cities');
-            $interTimes = $request->request->all('intermediate_times');
-            $interDistances = $request->request->all('intermediate_distances');
 
             if (is_array($interCities)) {
-                foreach ($interCities as $idx => $cityId) {
+                foreach ($interCities as $cityId) {
                     if (!empty($cityId)) {
                         $interCity = $cityRepo->find((int) $cityId);
                         if ($interCity) {
-                            $timeStr = $interTimes[$idx] ?? '+2 hours';
-                            $distVal = (float) ($interDistances[$idx] ?? 100.0);
-
                             $wpInter = new Waypoint();
                             $wpInter->setCity($interCity);
                             $wpInter->setStopOrder($stopOrder++);
-                            $wpInter->setArrivalTime($departureDateTime->modify('+' . max(1, (int)$timeStr) . ' minutes'));
-                            $wpInter->setDistanceFromOriginKm($distVal);
+                            $wpInter->setArrivalTime($departureDateTime);
+                            $wpInter->setDistanceFromOriginKm(0.0);
                             $trip->addWaypoint($wpInter);
                         }
                     }
                 }
             }
 
-            // Destination Waypoint
-            $destDurationMinutes = !empty($arrTime) ? (int) $arrTime : 180;
+            // Destination Waypoint (numbers from browser are intentionally ignored; server recomputes with ORS)
             $wpDest = new Waypoint();
             $wpDest->setCity($destCity);
             $wpDest->setStopOrder($stopOrder);
-            $wpDest->setArrivalTime($departureDateTime->modify('+' . $destDurationMinutes . ' minutes'));
-            $wpDest->setDistanceFromOriginKm($destDist);
+            $wpDest->setArrivalTime($departureDateTime);
+            $wpDest->setDistanceFromOriginKm(0.0);
             $trip->addWaypoint($wpDest);
 
             $em->persist($trip);
             $em->flush();
+
+            // Server recomputes route values with RoutingService
+            $tripRouteUpdater->triggerRefresh($trip);
 
             $this->addFlash('success', 'Your ride has been successfully published! Passengers can now book seats.');
             return $this->redirectToRoute('driver_dashboard');

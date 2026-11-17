@@ -50,7 +50,7 @@
                 <div>
                     <span style="font-size: 0.78rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Reserved Seats</span>
                     <div style="font-weight: 700; font-size: 0.95rem;">
-                        {{ booking.seatsCount }} seat(s) ({{ booking.distanceKm }} km)
+                        {{ booking.seatsCount }} seat(s) · {{ display_segment_eta(booking.boardWaypoint, booking.alightWaypoint) }}
                     </div>
                 </div>
 

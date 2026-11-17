@@ -8,6 +8,7 @@ use App\Entity\Payment;
 use App\Entity\Trip;
 use App\Entity\User;
 use App\Entity\Waypoint;
+use App\Routing\TripRouteUpdater;
 use Doctrine\DBAL\LockMode;
 use Doctrine\ORM\EntityManagerInterface;
 
@@ -70,8 +71,9 @@ class BookingManager
                 ));
             }
 
-            // Calculate distance and price
-            $distance = abs((float) $alight->getDistanceFromOriginKm() - (float) $board->getDistanceFromOriginKm());
+            // Calculate distance and price using segment helper
+            $segment = TripRouteUpdater::segment($board, $alight);
+            $distance = $segment->distanceKm;
             $unitPrice = $this->pricingCalculator->calculateSegmentPrice($distance, $lockedTrip->getDriver()->getRatingAvg());
             $totalPrice = $unitPrice * $seatsCount;
 

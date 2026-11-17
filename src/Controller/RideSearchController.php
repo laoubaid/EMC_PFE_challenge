@@ -9,6 +9,7 @@ use App\Entity\Waypoint;
 use App\Repository\CityRepository;
 use App\Repository\TripRepository;
 use App\Repository\WaypointRepository;
+use App\Routing\TripRouteUpdater;
 use App\Service\BookingManager;
 use App\Service\PricingCalculator;
 use App\Service\SeatAvailabilityService;
@@ -58,15 +59,21 @@ class RideSearchController extends AbstractController
 
                 if ($boardWaypoint && $alightWaypoint) {
                     $availableSeats = $seatService->getAvailableSeatsForSegment($trip, $boardWaypoint, $alightWaypoint);
-                    $distance = abs((float) $alightWaypoint->getDistanceFromOriginKm() - (float) $boardWaypoint->getDistanceFromOriginKm());
-                    $price = $pricingCalc->calculateSegmentPrice($distance, $trip->getDriver()->getRatingAvg());
+                    $segment = TripRouteUpdater::segment($boardWaypoint, $alightWaypoint);
+                    $price = $pricingCalc->calculateSegmentPrice($segment->distanceKm, $trip->getDriver()->getRatingAvg());
+                    $intermediateCount = max(0, abs($alightWaypoint->getStopOrder() - $boardWaypoint->getStopOrder()) - 1);
+                    $bufferedDuration = TripRouteUpdater::calculateBufferedDuration($segment->durationMin, $intermediateCount);
+                    $displayEta = TripRouteUpdater::formatDisplayEta($segment->distanceKm, $segment->durationMin, $intermediateCount);
 
                     $results[] = [
                         'trip' => $trip,
                         'boardWaypoint' => $boardWaypoint,
                         'alightWaypoint' => $alightWaypoint,
                         'availableSeats' => $availableSeats,
-                        'distanceKm' => $distance,
+                        'distanceKm' => $segment->distanceKm,
+                        'durationMin' => $segment->durationMin,
+                        'bufferedDurationMin' => $bufferedDuration,
+                        'displayEta' => $displayEta,
                         'price' => $price,
                     ];
                 }
@@ -102,12 +109,20 @@ class RideSearchController extends AbstractController
 
         $availableSeats = 0;
         $distance = 0.0;
+        $durationMin = 0;
+        $bufferedDurationMin = 0;
+        $displayEta = '';
         $price = 0.0;
 
         if ($boardWaypoint && $alightWaypoint && $boardWaypoint->getStopOrder() < $alightWaypoint->getStopOrder()) {
             $availableSeats = $seatService->getAvailableSeatsForSegment($trip, $boardWaypoint, $alightWaypoint);
-            $distance = abs((float) $alightWaypoint->getDistanceFromOriginKm() - (float) $boardWaypoint->getDistanceFromOriginKm());
+            $segment = TripRouteUpdater::segment($boardWaypoint, $alightWaypoint);
+            $distance = $segment->distanceKm;
+            $durationMin = $segment->durationMin;
             $price = $pricingCalc->calculateSegmentPrice($distance, $trip->getDriver()->getRatingAvg());
+            $intermediateCount = max(0, abs($alightWaypoint->getStopOrder() - $boardWaypoint->getStopOrder()) - 1);
+            $bufferedDurationMin = TripRouteUpdater::calculateBufferedDuration($durationMin, $intermediateCount);
+            $displayEta = TripRouteUpdater::formatDisplayEta($distance, $durationMin, $intermediateCount);
         }
 
         $occupancyBreakdown = $seatService->getLegOccupancyBreakdown($trip);
@@ -119,6 +134,9 @@ class RideSearchController extends AbstractController
             'alightWaypoint' => $alightWaypoint,
             'availableSeats' => $availableSeats,
             'distanceKm' => $distance,
+            'durationMin' => $durationMin,
+            'bufferedDurationMin' => $bufferedDurationMin,
+            'displayEta' => $displayEta,
             'price' => $price,
             'occupancyBreakdown' => $occupancyBreakdown,
         ]);
