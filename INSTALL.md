@@ -24,6 +24,7 @@ cp .env.example .env
 ```bash
 make build
 make up
+make install
 make reset
 ```
 The application will be live at **http://localhost:8000**.
@@ -35,8 +36,8 @@ The application will be live at **http://localhost:8000**.
 Requires PHP 8.2+, Composer, and MySQL (or SQLite):
 
 ```bash
-composer install
 cp .env.example .env
+composer install
 php bin/console doctrine:migrations:migrate --no-interaction
 php bin/console app:seed --purge
 php -S 127.0.0.1:8000 -t public
